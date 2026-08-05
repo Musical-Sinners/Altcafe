@@ -31,11 +31,11 @@ function WalletCard({ balance, cap, referredCount }) {
         </div>
 
         <div className="wallet-amount">
-          <span className="cur">৳</span>
+          <span className="cur">₹</span>
           {displayAmount}
         </div>
 
-        <p className="wallet-cap">Max balance limit ৳{cap}</p>
+        <p className="wallet-cap">Max balance limit ₹{cap}</p>
 
         <div className="wallet-bar">
           <div className="wallet-bar-fill" style={{ width: `${barWidth}%` }} />
@@ -47,7 +47,7 @@ function WalletCard({ balance, cap, referredCount }) {
             <div className="wallet-stat-label">Referrals</div>
           </div>
           <div className="wallet-stat">
-            <div className="wallet-stat-num">৳{referredCount * 100}</div>
+            <div className="wallet-stat-num">₹{referredCount * 100}</div>
             <div className="wallet-stat-label">Total Earned</div>
           </div>
         </div>

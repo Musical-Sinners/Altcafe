@@ -8,6 +8,12 @@
   padding: 18px 16px;
   box-shadow: var(--shadow-card);
   transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+  /* reset for when rendered as a <button> (in-page action tiles) */
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
 }
 
 .stat-tile:hover {

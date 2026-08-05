@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { MapPin, Clock, CheckCircle } from "lucide-react";
+import { auth } from "../firebase";
+import { getUserProfile } from "../lib/userService";
+import { createBooking } from "../lib/bookingService";
+import { useToast } from "../contexts/ToastContext";
 import Button from "../components/Button";
 import BookingSuccess from "../components/BookingSuccess";
 import "./Booking.css";
@@ -12,14 +16,44 @@ const turfs = [
 
 const days = ["Thu 6", "Fri 7", "Sat 8", "Sun 9", "Mon 10"];
 const slots = ["4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"];
+const PRICE = 600;
 
 function Booking() {
+  const { showToast } = useToast();
   const [selectedTurf, setSelectedTurf] = useState("a");
   const [selectedDay, setSelectedDay] = useState(2);
   const [selectedSlot, setSelectedSlot] = useState("6:00 PM");
   const [success, setSuccess] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const activeTurf = turfs.find((t) => t.id === selectedTurf);
+
+  const handleConfirm = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      showToast("Please log in again to book.", "error");
+      return;
+    }
+    setConfirming(true);
+    try {
+      const profile = await getUserProfile(currentUser.uid);
+      await createBooking(currentUser.uid, {
+        turf: activeTurf.name,
+        location: activeTurf.location,
+        day: days[selectedDay],
+        time: selectedSlot,
+        price: PRICE,
+        userName: profile?.name || "",
+        userContact: profile?.phone || profile?.email || "",
+      });
+      setSuccess(true);
+    } catch (err) {
+      console.error(err);
+      showToast("Could not confirm booking. Please try again.", "error");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <div className="booking-page">
@@ -86,9 +120,10 @@ function Booking() {
         <Button
           className="booking-confirm-btn"
           icon={CheckCircle}
-          onClick={() => setSuccess(true)}
+          onClick={handleConfirm}
+          loading={confirming}
         >
-          Confirm Booking · ৳600
+          Confirm Booking · ₹{PRICE}
         </Button>
       </div>
 

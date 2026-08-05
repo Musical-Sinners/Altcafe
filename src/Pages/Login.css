@@ -92,6 +92,20 @@
 
 .login-pitch-list svg { color: var(--color-accent); }
 
+.login-referral-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(244, 183, 64, 0.12);
+  border: 1px solid rgba(244, 183, 64, 0.16);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
 .login-form { text-align: left; }
 
 .login-label {
@@ -111,6 +125,12 @@
   border-radius: var(--radius-btn);
   padding: 0 16px;
   margin-bottom: 18px;
+  transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.login-phone-row:focus-within {
+  border-color: rgba(27, 107, 71, 0.45);
+  box-shadow: 0 0 0 3px rgba(27, 107, 71, 0.15);
 }
 
 .login-prefix {
@@ -132,6 +152,34 @@
 
 .login-input::placeholder { color: rgba(255, 255, 255, 0.35); }
 
+/* Standalone inputs (password fields) need their own box — the phone row
+   above only wraps the phone number, not the password field below it. */
+.login-form > input.login-input {
+  display: block;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-btn);
+  padding: 0 16px;
+  margin-bottom: 18px;
+  box-sizing: border-box;
+  transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.login-form > input.login-input:focus {
+  border-color: rgba(27, 107, 71, 0.45);
+  box-shadow: 0 0 0 3px rgba(27, 107, 71, 0.15);
+}
+
+/* Kill the browser's default autofill yellow highlight on password fields */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(30, 58, 43, 0.9) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .login-input-otp {
   width: 100%;
   background: rgba(255, 255, 255, 0.08);
@@ -149,4 +197,149 @@
   color: #ff8a80;
   font-size: 13px;
   margin-top: 14px;
+}
+
+/* Login method toggle (Phone / Email) */
+.login-method-toggle {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.login-method-toggle button {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 180ms var(--ease-out);
+}
+
+.login-method-toggle button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+}
+
+.login-method-toggle button.active {
+  background: linear-gradient(90deg, rgba(244,183,64,0.14), rgba(27,107,71,0.08));
+  color: #fff;
+  border-color: rgba(244,183,64,0.28);
+}
+
+/* Tighter card and input polish for smaller screens */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 24px 18px;
+    max-width: 360px;
+  }
+
+  .login-title { font-size: 20px; }
+  .login-ball { font-size: 28px; }
+  .login-input, .login-input-otp { height: 48px; font-size: 15px; }
+}
+
+/* Reduce visual noise when focused (old duplicate rule removed —
+   focus styling now lives on .login-phone-row:focus-within and
+   .login-form > input.login-input:focus above) */
+
+/* Ensure full-width submit has comfortable spacing */
+.login-submit { margin-top: 6px; height: 48px; }
+
+.login-success {
+  color: #b7f5c9;
+  font-size: 13px;
+  margin-top: 12px;
+  line-height: 1.5;
+}
+
+/* Country dropdown for phone signup/login — compact, flag + code only */
+.login-country-select {
+  height: 52px;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  margin-right: 10px;
+  padding-right: 10px;
+  outline: none;
+  cursor: pointer;
+  width: 92px;
+  flex-shrink: 0;
+}
+
+.login-country-select option {
+  background: #123524;
+  color: #fff;
+  font-size: 14px;
+}
+
+/* Email input with a leading mail icon, styled to match the phone row */
+.login-email-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-btn);
+  padding: 0 16px;
+  margin-bottom: 18px;
+  transition: border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.login-email-row:focus-within {
+  border-color: rgba(27, 107, 71, 0.45);
+  box-shadow: 0 0 0 3px rgba(27, 107, 71, 0.15);
+}
+
+.login-email-icon { color: #9db9ac; flex-shrink: 0; }
+
+/* Override the generic standalone-input box styling for the email field,
+   since .login-email-row above already provides the box/border/padding —
+   without this the email input would get a double border. */
+.login-form > .login-email-row > input.login-input-email {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: 0;
+  height: 52px;
+}
+
+/* Switch link under each form ("New here? Sign up" / "Log in with password") */
+.login-switch {
+  text-align: center;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 14px;
+}
+
+.login-link {
+  background: none;
+  border: none;
+  color: var(--color-accent, #f4b740);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12.5px;
+  text-decoration: underline;
+}
+
+.login-link:hover { opacity: 0.85; }
+
+/*
+  Firebase's invisible reCAPTCHA still renders a small floating badge in the
+  bottom-right corner of the page — this is required by Google's Terms of
+  Service and can't be legally hidden with display:none. We can reposition
+  it so it doesn't overlap the login card on small screens.
+*/
+.grecaptcha-badge {
+  z-index: 5;
 }

@@ -27,7 +27,7 @@ function ReferralCard({ referralCode, referralLink }) {
         </span>
         <div>
           <h2 style={{ fontSize: 17 }}>Invite Friends</h2>
-          <p className="referral-sub">Earn ৳100 every successful referral</p>
+          <p className="referral-sub">Earn ₹100 every successful referral</p>
         </div>
       </div>
 

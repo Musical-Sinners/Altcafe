@@ -31,7 +31,7 @@ function CafeOrderSuccess({ open, onClose, count, total }) {
 
         <div className="cafe-success-details">
           <p className="cafe-success-line">
-            {count} item{count > 1 ? "s" : ""} · ৳{total}
+            {count} item{count > 1 ? "s" : ""} · ₹{total}
           </p>
           <p className="cafe-success-sub">Ready for pickup in ~10 minutes</p>
         </div>
