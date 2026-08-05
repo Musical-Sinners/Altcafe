@@ -1,0 +1,72 @@
+.booking-success {
+  position: relative;
+  text-align: center;
+  padding-top: 8px;
+  overflow: hidden;
+}
+
+.confetti-field {
+  position: absolute;
+  inset: -20px -28px auto -28px;
+  height: 140px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  animation: confetti-fall 1.3s ease-in both;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(150px) rotate(300deg); opacity: 0; }
+}
+
+.booking-success-check {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #e6f9ee;
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: check-pop 0.5s var(--ease-out) 0.15s both;
+}
+
+@keyframes check-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.booking-success-title {
+  font-size: 21px;
+  margin-bottom: 14px;
+}
+
+.booking-success-details {
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 22px;
+}
+
+.booking-success-day {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.booking-success-turf {
+  color: var(--color-subtext);
+  font-size: 13.5px;
+  margin-top: 2px;
+}
+
+.booking-success-btn { width: 100%; }

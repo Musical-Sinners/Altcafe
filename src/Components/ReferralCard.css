@@ -1,0 +1,65 @@
+.referral-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.referral-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.referral-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: linear-gradient(155deg, var(--color-accent), var(--color-accent-dark));
+  color: var(--color-ink-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.referral-sub {
+  font-size: 13px;
+  color: var(--color-subtext);
+  margin-top: 2px;
+}
+
+.referral-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.referral-code-label {
+  font-size: 12px;
+  color: var(--color-subtext);
+  margin-bottom: 4px;
+}
+
+.referral-code {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.referral-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.referral-qr {
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  flex-shrink: 0;
+}

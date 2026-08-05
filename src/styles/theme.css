@@ -1,0 +1,128 @@
+
+
+:root {
+  /* Color — Night Match theme */
+  --color-primary: #22c55e;
+  --color-primary-dark: #15803d;
+  --color-secondary: #16a34a;
+  --color-accent: #f4b740;
+  --color-accent-dark: #c8931f;
+  --color-bg: #0b1410;
+  --color-card: #14211a;
+  --color-text: #eef3ef;
+  --color-subtext: #8ea395;
+  --color-danger: #f87171;
+  --color-success: #4ade80;
+  --color-line: #24352c;
+
+  /* Dark surfaces (navbar, admin sidebar, login hero) */
+  --color-ink-900: #050a07;
+  --color-ink-800: #0a140f;
+  --color-ink-700: #10201a;
+
+  /* Type */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --fs-page-title: 36px;
+  --fs-section-title: 22px;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-micro: 12px;
+
+  /* Radius */
+  --radius-card: 24px;
+  --radius-btn: 16px;
+  --radius-pill: 999px;
+  --radius-sm: 12px;
+
+  /* Shadow — glow-based for dark surfaces */
+  --shadow-soft: 0 18px 40px -18px rgba(0, 0, 0, 0.6), 0 0 40px -22px rgba(34, 197, 94, 0.3);
+  --shadow-card: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-btn: 0 10px 24px -8px rgba(34, 197, 94, 0.45);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+h1 { font-weight: 700; font-size: var(--fs-page-title); }
+h2 { font-weight: 600; font-size: var(--fs-section-title); }
+
+p { margin: 0; }
+
+a { color: inherit; text-decoration: none; }
+
+button { font-family: inherit; }
+
+::selection { background: var(--color-accent); color: var(--color-ink-900); }
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Shared surface used by every card in the app */
+.surface-card {
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+}
+
+/* Signature divider — soccer-ball stitch pattern, used where a "ticket"
+   is torn between two sections (wallet card, referral card, receipts) */
+.stitch-divider {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--color-line);
+  margin: 0 -24px;
+}
+
+.stitch-divider::before,
+.stitch-divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-bg);
+}
+
+.stitch-divider::before { left: -12px; }
+.stitch-divider::after { right: -12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+/* ============================================================
+   GLOBAL FOOTBALL-THEMED BACKGROUND
+   Faint pitch grid + soccer-ball hex panels, tiled and fixed
+   ============================================================ */
+
+body {
+  background-color: var(--color-bg);
+  background-image:
+    linear-gradient(rgba(244, 183, 64, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 183, 64, 0.05) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='none' stroke='rgba(34,197,94,0.08)' stroke-width='1.5'%3E%3Cpolygon points='110,25 150,50 150,100 110,125 70,100 70,50'/%3E%3Cpolygon points='30,140 55,155 55,185 30,200 5,185 5,155'/%3E%3Cpolygon points='190,140 215,155 215,185 190,200 165,185 165,155'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 42px 42px, 42px 42px, 220px 220px;
+  background-attachment: fixed, fixed, fixed;
+}

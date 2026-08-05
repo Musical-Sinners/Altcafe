@@ -1,0 +1,43 @@
+.admin-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eaf3ee;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-stat-trend {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.admin-stat-trend.up { background: #e6f9ee; color: var(--color-success); }
+.admin-stat-trend.down { background: #fdecea; color: var(--color-danger); }
+
+.admin-stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+}
+
+.admin-stat-label {
+  font-size: 13px;
+  color: var(--color-subtext);
+}
