@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { LogOut } from "lucide-react";
 import { auth } from "../firebase";
-import { isAdminEmail } from "../lib/adminConfig";
+import { canAccessAdmin } from "../lib/adminConfig";
 import { useToast } from "../contexts/ToastContext";
 import AdminSidebar from "../components/AdminSidebar";
 import Skeleton from "../components/Skeleton";
@@ -26,12 +26,20 @@ function AdminLayout() {
         navigate("/login");
         return;
       }
-      if (!isAdminEmail(user.email)) {
-        showToast("You are not admin, please go to Dashboard.", "error");
-        navigate("/dashboard");
-        return;
-      }
-      setChecking(false);
+
+      canAccessAdmin(user.email)
+        .then((allowed) => {
+          if (!allowed) {
+            showToast("You are not admin, please go to Dashboard.", "error");
+            navigate("/dashboard");
+            return;
+          }
+          setChecking(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          navigate("/dashboard");
+        });
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps

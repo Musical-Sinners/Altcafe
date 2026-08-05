@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { getAllUsers } from "../lib/userService";
+import { Search, Trash2, UserX } from "lucide-react";
+import { deleteUserProfile, getAllUsers } from "../lib/userService";
 import Skeleton from "../components/Skeleton";
+import Button from "../components/Button";
+import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 
 function formatDate(isoString) {
@@ -10,9 +12,11 @@ function formatDate(isoString) {
 }
 
 function AdminUsers() {
+  const { showToast } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     getAllUsers().then((data) => {
@@ -30,6 +34,24 @@ function AdminUsers() {
       )
     );
   }, [users, search]);
+
+  const handleDeleteUser = async (user) => {
+    const label = user.name || user.phone || user.email || user.id;
+    const confirmed = window.confirm(`Remove ${label} from Firestore?`);
+    if (!confirmed) return;
+
+    setDeletingId(user.id);
+    try {
+      await deleteUserProfile(user.id);
+      setUsers((current) => current.filter((entry) => entry.id !== user.id));
+      showToast("User profile removed");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not remove user.", "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <>
@@ -64,6 +86,7 @@ function AdminUsers() {
                 <th>Referrals</th>
                 <th>Wallet</th>
                 <th>Joined</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -76,6 +99,17 @@ function AdminUsers() {
                   <td>{u.referral_count || 0}</td>
                   <td>₹{u.wallet_balance || 0}</td>
                   <td>{formatDate(u.created_at)}</td>
+                  <td>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon={deletingId === u.id ? UserX : Trash2}
+                      onClick={() => handleDeleteUser(u)}
+                      disabled={deletingId === u.id}
+                    >
+                      {deletingId === u.id ? "Removing" : "Remove"}
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

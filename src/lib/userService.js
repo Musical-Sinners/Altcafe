@@ -7,6 +7,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   increment,
   collection,
   collectionGroup,
@@ -17,6 +18,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../firebase";
+import { recordAdminActivity } from "./adminActivity";
 
 const MAX_WALLET_REWARD = 500; // ₹500 cap per user, from the business rules
 const REFERRAL_REWARD = 30; // ₹30 credited to the referrer
@@ -79,6 +81,10 @@ export async function createUserProfileIfNeeded(uid, details = {}) {
   const userRef = doc(db, "users", uid);
   const existing = await getDoc(userRef);
   if (existing.exists()) {
+    const data = existing.data();
+    if (data?.account_status === "removed") {
+      throw new Error("account-removed");
+    }
     return existing.data(); // already signed up before, don't recreate
   }
 
@@ -134,11 +140,57 @@ export async function createUserProfileIfNeeded(uid, details = {}) {
 }
 
 /**
+ * Fetches the raw Firestore user document, including removed/tombstoned
+ * accounts. Login uses this to decide whether an account should be blocked
+ * or reactivated.
+ */
+export async function getUserRecord(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+/**
+ * Looks up a removed account by email so the signup form can turn into a
+ * reactivation flow instead of showing a misleading "already registered"
+ * error.
+ */
+export async function getRemovedUserByEmail(email) {
+  const normalizedEmail = (email || "").trim().toLowerCase();
+  if (!normalizedEmail) return null;
+  const snap = await getDocs(
+    query(
+      collection(db, "users"),
+      where("email", "==", normalizedEmail),
+      where("account_status", "==", "removed")
+    )
+  );
+  if (snap.empty) return null;
+  const docSnap = snap.docs[0];
+  return { id: docSnap.id, ...docSnap.data() };
+}
+
+/**
+ * Restores a previously removed profile after the user completes the
+ * reactivation flow.
+ */
+export async function restoreRemovedUserProfile(uid) {
+  await updateDoc(doc(db, "users", uid), {
+    account_status: "active",
+    reactivation_required: false,
+    removed_at: null,
+    reactivated_at: new Date().toISOString(),
+  });
+}
+
+/**
  * Fetches a user's Firestore profile by their Auth uid.
  */
 export async function getUserProfile(uid) {
   const snap = await getDoc(doc(db, "users", uid));
-  return snap.exists() ? snap.data() : null;
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  if (data?.account_status === "removed") return null;
+  return data;
 }
 
 /**
@@ -224,7 +276,9 @@ export async function applyReferralRewardOnFirstPurchase(newUserUid) {
  */
 export async function getAllUsers() {
   const snap = await getDocs(query(collection(db, "users"), orderBy("created_at", "desc")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .filter((user) => user.account_status !== "removed");
 }
 
 /**
@@ -241,6 +295,32 @@ export async function getAllWalletTransactions() {
     uid: d.ref.parent.parent.id,
     ...d.data(),
   }));
+}
+
+/**
+ * Removes a user's Firestore profile and their wallet transaction history.
+ * The profile is kept as a tombstone so the same Firebase Auth account
+ * cannot silently recreate itself on the next login.
+ */
+export async function deleteUserProfile(uid) {
+  const walletSnap = await getDocs(collection(db, "users", uid, "wallet_transactions"));
+  await Promise.all(walletSnap.docs.map((d) => deleteDoc(d.ref)));
+  const userSnap = await getDoc(doc(db, "users", uid));
+  const user = userSnap.exists() ? userSnap.data() : null;
+  await updateDoc(doc(db, "users", uid), {
+    account_status: "removed",
+    reactivation_required: true,
+    removed_at: new Date().toISOString(),
+    reactivation_requested_at: new Date().toISOString(),
+  });
+  await recordAdminActivity({
+    action: "user-removed",
+    title: "User removed",
+    detail: `${user?.name || user?.phone || user?.email || uid} access was removed`,
+    targetType: "user",
+    targetId: uid,
+    meta: { uid, name: user?.name || "", phone: user?.phone || "", email: user?.email || "" },
+  });
 }
 
 export { NEW_USER_DISCOUNT, REFERRAL_REWARD, MAX_WALLET_REWARD };

@@ -7,9 +7,16 @@ import {
   sendEmailVerification,
   linkWithCredential,
   EmailAuthProvider,
+  signOut,
 } from "firebase/auth";
 import { auth } from "../firebase";
-import { createUserProfileIfNeeded } from "../lib/userService";
+import {
+  createUserProfileIfNeeded,
+  getRemovedUserByEmail,
+  getUserRecord,
+  restoreRemovedUserProfile,
+} from "../lib/userService";
+import { canAccessAdmin } from "../lib/adminConfig";
 import { COUNTRY_CODES, getCountryConfig } from "../lib/countryCodes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Volleyball, Gift, Coffee, Mail, Link2 } from "lucide-react";
@@ -73,6 +80,18 @@ function Login() {
     setSuccessMessage("");
   };
 
+  const getPostLoginPath = async (userEmail) => {
+    const allowed = await canAccessAdmin(userEmail);
+    return allowed ? "/admin" : "/dashboard";
+  };
+
+  const handleRemovedAccount = async () => {
+    await signOut(auth);
+    setError(
+      "This account was removed by admin. We sent a fresh verification link. Verify it, then log in again."
+    );
+  };
+
   // ---------- EMAIL + PASSWORD ----------
 
   const handleEmailSignup = async (e) => {
@@ -102,7 +121,14 @@ function Login() {
     } catch (err) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered. Please log in instead.");
+        const removedUser = await getRemovedUserByEmail(email);
+        if (removedUser) {
+          setError(
+            "This account was removed by admin. Log in with the same email and password to receive a fresh verification link."
+          );
+        } else {
+          setError("This email is already registered. Please log in instead.");
+        }
         setEmailMode("login");
       } else if (err.message === "weak-password") {
         setError("Password must be at least 6 characters.");
@@ -124,6 +150,19 @@ function Login() {
     setLoading(true);
     try {
       const result = await signInWithEmailAndPassword(auth, email, emailPassword);
+      const userRecord = await getUserRecord(result.user.uid);
+
+      if (userRecord?.account_status === "removed") {
+        if (userRecord.reactivation_required && result.user.emailVerified) {
+          await restoreRemovedUserProfile(result.user.uid);
+          navigate(await getPostLoginPath(result.user.email));
+          return;
+        }
+
+        await sendEmailVerification(result.user);
+        await handleRemovedAccount();
+        return;
+      }
 
       if (!result.user.emailVerified) {
         // They haven't clicked the verification link yet — resend it and
@@ -138,9 +177,13 @@ function Login() {
       }
 
       await createUserProfileIfNeeded(result.user.uid, { email });
-      navigate("/dashboard");
+      navigate(await getPostLoginPath(result.user.email));
     } catch (err) {
       console.error(err);
+      if (err.message === "account-removed") {
+        await handleRemovedAccount();
+        return;
+      }
       if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
         setError("Incorrect email or password.");
       } else if (err.code === "auth/user-not-found") {
@@ -227,14 +270,24 @@ function Login() {
         if (linkErr.code !== "auth/provider-already-linked") throw linkErr;
       }
 
+      const userRecord = await getUserRecord(result.user.uid);
+      if (userRecord?.account_status === "removed") {
+        await handleRemovedAccount();
+        return;
+      }
+
       await createUserProfileIfNeeded(result.user.uid, {
         name: phoneName,
         phone: fullPhoneNumber,
         referredByCode: phoneReferralCode.trim() || referralCodeFromLink,
       });
-      navigate("/dashboard");
+      navigate(await getPostLoginPath(result.user.email));
     } catch (err) {
       console.error(err);
+      if (err.message === "account-removed") {
+        await handleRemovedAccount();
+        return;
+      }
       setError("Incorrect OTP. Please try again.");
     } finally {
       setLoading(false);
@@ -251,10 +304,19 @@ function Login() {
       const fullPhoneNumber = getFullPhoneNumber();
       const fakeEmail = phoneToFakeEmail(fullPhoneNumber);
       const result = await signInWithEmailAndPassword(auth, fakeEmail, phonePassword);
+      const userRecord = await getUserRecord(result.user.uid);
+      if (userRecord?.account_status === "removed") {
+        await handleRemovedAccount();
+        return;
+      }
       await createUserProfileIfNeeded(result.user.uid, { phone: fullPhoneNumber });
-      navigate("/dashboard");
+      navigate(await getPostLoginPath(result.user.email));
     } catch (err) {
       console.error(err);
+      if (err.message === "account-removed") {
+        await handleRemovedAccount();
+        return;
+      }
       if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
         setError("Incorrect phone number or password.");
       } else if (err.code === "auth/user-not-found") {
