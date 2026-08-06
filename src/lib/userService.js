@@ -202,6 +202,7 @@ export async function updateUserProfile(uid, updates = {}) {
   const allowed = {};
   if (typeof updates.name === "string") allowed.name = updates.name.trim();
   if (typeof updates.email === "string") allowed.email = updates.email.trim();
+  if (typeof updates.phone === "string") allowed.phone = updates.phone.trim();
   await updateDoc(doc(db, "users", uid), allowed);
 }
 

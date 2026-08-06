@@ -43,7 +43,7 @@ function Profile() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "" });
 
   useEffect(() => {
     const load = async () => {
@@ -114,7 +114,7 @@ function Profile() {
   ];
 
   const openEdit = () => {
-    setForm({ name: user.name, email: user.email });
+    setForm({ name: user.name, email: user.email, phone: user.phone });
     setEditOpen(true);
   };
 
@@ -126,8 +126,9 @@ function Profile() {
     try {
       const name = form.name.trim() || user.name;
       const email = form.email.trim();
-      await updateUserProfile(currentUser.uid, { name, email });
-      setUser((u) => ({ ...u, name, email }));
+      const phone = form.phone.trim();
+      await updateUserProfile(currentUser.uid, { name, email, phone });
+      setUser((u) => ({ ...u, name, email, phone }));
       setEditOpen(false);
       showToast("Profile updated");
     } catch (err) {
@@ -300,6 +301,16 @@ function Profile() {
             placeholder="you@example.com"
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          />
+
+          <label className="profile-form-label" htmlFor="profile-phone">Phone Number</label>
+          <input
+            id="profile-phone"
+            className="profile-form-input"
+            type="tel"
+            placeholder="+8801XXXXXXXXX"
+            value={form.phone}
+            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
           />
 
           <Button type="submit" icon={Check} className="profile-form-submit" loading={saving}>

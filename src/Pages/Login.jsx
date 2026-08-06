@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   linkWithCredential,
   EmailAuthProvider,
   signOut,
@@ -57,7 +58,7 @@ function Login() {
   // Default to "login" instead of "signup" — most people opening this page
   // already have an account. Defaulting to "signup" meant returning users
   // kept hitting "email already in use" every time they landed here fresh.
-  const [emailMode, setEmailMode] = useState("login"); // "signup" | "login"
+  const [emailMode, setEmailMode] = useState("login"); // "signup" | "login" | "reset"
 
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -191,6 +192,35 @@ function Login() {
         setEmailMode("signup");
       } else {
         setError("Could not log in. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    resetMessages();
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      // Deliberately the same message whether or not the account exists —
+      // this stops someone from using this form to check which emails are
+      // registered on the platform.
+      setSuccessMessage(
+        `If an account exists for ${email}, a password reset link has been sent. ` +
+          `Check your inbox and Spam/Junk folder.`
+      );
+    } catch (err) {
+      console.error(err);
+      if (err.code === "auth/invalid-email") {
+        setError("Please enter a valid email address.");
+      } else {
+        setError("Could not send reset link. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -535,7 +565,7 @@ function Login() {
 
         {/* ---------- EMAIL FLOW ---------- */}
 
-        {loginMethod === "email" && (
+        {loginMethod === "email" && emailMode !== "reset" && (
           <form
             onSubmit={emailMode === "signup" ? handleEmailSignup : handleEmailLogin}
             className="login-form"
@@ -591,6 +621,21 @@ function Login() {
               className="login-input"
             />
 
+            {emailMode === "login" && (
+              <p className="login-forgot">
+                <button
+                  type="button"
+                  className="login-link"
+                  onClick={() => {
+                    resetMessages();
+                    setEmailMode("reset");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </p>
+            )}
+
             <Button
               type="submit"
               icon={ArrowRight}
@@ -617,6 +662,46 @@ function Login() {
                   </button>
                 </>
               )}
+            </p>
+          </form>
+        )}
+
+        {loginMethod === "email" && emailMode === "reset" && (
+          <form onSubmit={handleForgotPassword} className="login-form">
+            <label className="login-label">Email Address</label>
+            <div className="login-email-row">
+              <Mail size={18} strokeWidth={2} className="login-email-icon" />
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="login-input login-input-email"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              icon={ArrowRight}
+              iconPosition="right"
+              loading={loading}
+              className="login-submit"
+            >
+              Send Reset Link
+            </Button>
+
+            <p className="login-switch">
+              <button
+                type="button"
+                className="login-link"
+                onClick={() => {
+                  resetMessages();
+                  setEmailMode("login");
+                }}
+              >
+                Back to log in
+              </button>
             </p>
           </form>
         )}
