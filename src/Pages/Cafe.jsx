@@ -1,37 +1,42 @@
-import { useMemo, useState } from "react";
-import { Search, Plus, Minus, ShoppingBag, Flame, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, Plus, Minus, ShoppingBag, Flame, Trash2, Coffee } from "lucide-react";
 import Modal from "../components/Modal";
 import Button from "../components/Button";
 import CafeOrderSuccess from "../components/CafeOrderSuccess";
+import PaymentMethodModal from "../components/PaymentMethodModal";
+import Skeleton from "../components/Skeleton";
 import { useToast } from "../contexts/ToastContext";
+import { auth } from "../firebase";
+import { addWalletTransaction, getUserProfile } from "../lib/userService";
+import { CAFE_CATEGORIES, createOrder, ensureMenuSeeded, listenToMenu } from "../lib/cafeService";
 import "./Cafe.css";
 
-const categories = ["All", "Coffee", "Tea", "Snacks", "Desserts"];
-
-const menu = [
-  { id: "c1", name: "Cold Brew", category: "Coffee", price: 120, icon: "☕", desc: "Slow-steeped, smooth & bold", popular: true },
-  { id: "c2", name: "Cappuccino", category: "Coffee", price: 150, icon: "☕", desc: "Espresso, steamed milk, foam" },
-  { id: "c3", name: "Americano", category: "Coffee", price: 110, icon: "☕", desc: "Espresso, hot water" },
-  { id: "c4", name: "Caramel Latte", category: "Coffee", price: 160, icon: "☕", desc: "Espresso, milk, caramel syrup", popular: true },
-  { id: "t1", name: "Masala Chai", category: "Tea", price: 60, icon: "🍵", desc: "Spiced milk tea" },
-  { id: "t2", name: "Green Tea", category: "Tea", price: 70, icon: "🍵", desc: "Light & antioxidant-rich" },
-  { id: "t3", name: "Lemon Iced Tea", category: "Tea", price: 90, icon: "🧊", desc: "Chilled, citrusy, refreshing" },
-  { id: "s1", name: "Club Sandwich", category: "Snacks", price: 180, icon: "🥪", desc: "Triple-decker, chicken & egg", popular: true },
-  { id: "s2", name: "French Fries", category: "Snacks", price: 120, icon: "🍟", desc: "Crispy, salted, served hot" },
-  { id: "s3", name: "Chicken Wrap", category: "Snacks", price: 200, icon: "🌯", desc: "Grilled chicken, house sauce" },
-  { id: "d1", name: "Chocolate Brownie", category: "Desserts", price: 150, icon: "🍫", desc: "Fudgy, warm, served with ice cream" },
-  { id: "d2", name: "Cheesecake Slice", category: "Desserts", price: 180, icon: "🍰", desc: "Classic New York style" },
-  { id: "d3", name: "Blueberry Muffin", category: "Desserts", price: 110, icon: "🧁", desc: "Soft, bakery-fresh" },
-];
+const categories = ["All", ...CAFE_CATEGORIES];
 
 function Cafe() {
   const { showToast } = useToast();
+  const [menu, setMenu] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState(null);
   const [success, setSuccess] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+
+  useEffect(() => {
+    let unsubscribe = () => {};
+    ensureMenuSeeded().finally(() => {
+      unsubscribe = listenToMenu((items) => {
+        setMenu(items);
+        setMenuLoading(false);
+      });
+    });
+    return () => unsubscribe();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -40,38 +45,88 @@ function Cafe() {
       const matchesQuery = !q || item.name.toLowerCase().includes(q);
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, query]);
+  }, [activeCategory, query, menu]);
 
   const cartItems = useMemo(() => {
     return Object.entries(cart)
       .filter(([, qty]) => qty > 0)
-      .map(([id, qty]) => ({ ...menu.find((m) => m.id === id), qty }));
-  }, [cart]);
+      .map(([id, qty]) => ({ ...menu.find((m) => m.id === id), qty }))
+      .filter((item) => item.id);
+  }, [cart, menu]);
 
   const totalItems = cartItems.reduce((sum, i) => sum + i.qty, 0);
   const totalPrice = cartItems.reduce((sum, i) => sum + i.qty * i.price, 0);
 
-  const updateQty = (id, delta) => {
+  const updateQty = (item, delta) => {
+    if (delta > 0 && item.available === false) {
+      showToast(`${item.name} is currently not available.`, "error");
+      return;
+    }
     setCart((prev) => {
-      const next = Math.max(0, (prev[id] || 0) + delta);
-      return { ...prev, [id]: next };
+      const next = Math.max(0, (prev[item.id] || 0) + delta);
+      return { ...prev, [item.id]: next };
     });
   };
 
-  const handlePlaceOrder = () => {
-    setLastOrder({ count: totalItems, total: totalPrice });
-    setCart({});
+  // Opens the cart → payment-method step, doesn't place the order yet.
+  const handleGoToPayment = () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      showToast("Please log in again to order.", "error");
+      return;
+    }
     setCartOpen(false);
-    setSuccess(true);
-    showToast("Order placed");
+    setPaymentModalOpen(true);
+  };
+
+  const handlePlaceOrder = async (paymentMethod) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      showToast("Please log in again to order.", "error");
+      return;
+    }
+
+    setPlacingOrder(true);
+    try {
+      const profile = await getUserProfile(currentUser.uid);
+      const itemsLabel = cartItems.map((item) => `${item.name} x${item.qty}`).join(", ");
+      const orderItems = cartItems.map((item) => ({ name: item.name, qty: item.qty, price: item.price }));
+
+      await createOrder(currentUser.uid, {
+        items: orderItems,
+        total: totalPrice,
+        userName: profile?.name || "",
+        userContact: profile?.phone || profile?.email || "",
+        paymentMethod,
+      });
+
+      await addWalletTransaction(currentUser.uid, {
+        label: `Cafe order — ${itemsLabel}`,
+        amount: -totalPrice,
+      });
+
+      setLastOrder({ count: totalItems, total: totalPrice });
+      setCart({});
+      setPaymentModalOpen(false);
+      setSuccess(true);
+      showToast("Order placed");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not place order. Please try again.", "error");
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   return (
     <div className="cafe-page">
       <div className="cafe-inner">
-        <div className="cafe-header">
-          <h1 className="cafe-title">Cafe Menu</h1>
-          <p className="cafe-subtitle">Fresh brews &amp; bites, ready in ~10 minutes</p>
+        <div className="cafe-hero">
+          <div className="cafe-hero-icon">
+            <Coffee size={26} strokeWidth={2} />
+          </div>
+          <h1 className="cafe-hero-title">AltCafe</h1>
+          <p className="cafe-hero-subtitle">Fresh brews &amp; bites, ready in ~10 minutes</p>
         </div>
 
         <label className="cafe-search">
@@ -97,47 +152,74 @@ function Cafe() {
           ))}
         </div>
 
-        <div className="cafe-menu-list">
-          {filtered.map((item) => {
-            const qty = cart[item.id] || 0;
-            return (
-              <div key={item.id} className="cafe-item-card">
-                <div className="cafe-item-icon">{item.icon}</div>
-
-                <div className="cafe-item-body">
-                  <div className="cafe-item-top">
-                    <span className="cafe-item-name">{item.name}</span>
-                    {item.popular && (
-                      <span className="cafe-item-badge">
-                        <Flame size={11} strokeWidth={2.4} /> Popular
-                      </span>
-                    )}
+        {menuLoading ? (
+          <div className="cafe-menu-list">
+            <Skeleton height={82} />
+            <Skeleton height={82} />
+            <Skeleton height={82} />
+          </div>
+        ) : (
+          <div className="cafe-menu-list">
+            {filtered.map((item) => {
+              const qty = cart[item.id] || 0;
+              const unavailable = item.available === false;
+              return (
+                <div
+                  key={item.id}
+                  className={`cafe-item-card ${unavailable ? "unavailable" : ""}`}
+                  onClick={() => setDetailItem(item)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="cafe-item-icon">
+                    {item.image ? <img src={item.image} alt={item.name} /> : item.icon}
                   </div>
-                  <p className="cafe-item-desc">{item.desc}</p>
-                  <span className="cafe-item-price">₹{item.price}</span>
+
+                  <div className="cafe-item-body">
+                    <div className="cafe-item-top">
+                      <span className="cafe-item-name">{item.name}</span>
+                      {item.popular && !unavailable && (
+                        <span className="cafe-item-badge">
+                          <Flame size={11} strokeWidth={2.4} /> Popular
+                        </span>
+                      )}
+                      {unavailable && <span className="cafe-item-badge unavailable-badge">Not Available</span>}
+                    </div>
+                    <p className="cafe-item-desc">{item.desc}</p>
+                    <span className="cafe-item-price">₹{item.price}</span>
+                  </div>
+
+                  {unavailable ? (
+                    <span className="cafe-add-btn disabled">Sold Out</span>
+                  ) : qty === 0 ? (
+                    <button
+                      className="cafe-add-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateQty(item, 1);
+                      }}
+                      type="button"
+                    >
+                      Add
+                    </button>
+                  ) : (
+                    <div className="cafe-stepper" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => updateQty(item, -1)} aria-label="Decrease quantity" type="button">
+                        <Minus size={14} strokeWidth={2.4} />
+                      </button>
+                      <span>{qty}</span>
+                      <button onClick={() => updateQty(item, 1)} aria-label="Increase quantity" type="button">
+                        <Plus size={14} strokeWidth={2.4} />
+                      </button>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
 
-                {qty === 0 ? (
-                  <button className="cafe-add-btn" onClick={() => updateQty(item.id, 1)} type="button">
-                    Add
-                  </button>
-                ) : (
-                  <div className="cafe-stepper">
-                    <button onClick={() => updateQty(item.id, -1)} aria-label="Decrease quantity" type="button">
-                      <Minus size={14} strokeWidth={2.4} />
-                    </button>
-                    <span>{qty}</span>
-                    <button onClick={() => updateQty(item.id, 1)} aria-label="Increase quantity" type="button">
-                      <Plus size={14} strokeWidth={2.4} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {filtered.length === 0 && <p className="cafe-empty">No items match your search.</p>}
-        </div>
+            {filtered.length === 0 && <p className="cafe-empty">No items match your search.</p>}
+          </div>
+        )}
       </div>
 
       {totalItems > 0 && (
@@ -167,11 +249,11 @@ function Cafe() {
                     <span className="cafe-cart-row-price">₹{item.price} each</span>
                   </div>
                   <div className="cafe-stepper cafe-stepper-sm">
-                    <button onClick={() => updateQty(item.id, -1)} aria-label="Decrease quantity" type="button">
+                    <button onClick={() => updateQty(item, -1)} aria-label="Decrease quantity" type="button">
                       <Minus size={13} strokeWidth={2.4} />
                     </button>
                     <span>{item.qty}</span>
-                    <button onClick={() => updateQty(item.id, 1)} aria-label="Increase quantity" type="button">
+                    <button onClick={() => updateQty(item, 1)} aria-label="Increase quantity" type="button">
                       <Plus size={13} strokeWidth={2.4} />
                     </button>
                   </div>
@@ -194,12 +276,61 @@ function Cafe() {
               <strong>₹{totalPrice}</strong>
             </div>
 
-            <Button className="cafe-cart-checkout-btn" onClick={handlePlaceOrder}>
-              Place Order · ₹{totalPrice}
+            <Button className="cafe-cart-checkout-btn" onClick={handleGoToPayment}>
+              Checkout · ₹{totalPrice}
             </Button>
           </>
         )}
       </Modal>
+
+      <Modal open={!!detailItem} onClose={() => setDetailItem(null)}>
+        {detailItem && (
+          <div className="cafe-detail">
+            <div className="cafe-detail-image">
+              {detailItem.image ? <img src={detailItem.image} alt={detailItem.name} /> : <span>{detailItem.icon}</span>}
+            </div>
+            <div className="cafe-detail-top">
+              <h2>{detailItem.name}</h2>
+              {detailItem.popular && detailItem.available !== false && (
+                <span className="cafe-item-badge">
+                  <Flame size={11} strokeWidth={2.4} /> Popular
+                </span>
+              )}
+            </div>
+            <span className="cafe-detail-category">{detailItem.category}</span>
+            <p className="cafe-detail-desc">{detailItem.desc}</p>
+            <div className="cafe-detail-bottom">
+              <span className="cafe-detail-price">₹{detailItem.price}</span>
+              {detailItem.available === false ? (
+                <span className="cafe-add-btn disabled">Sold Out</span>
+              ) : (cart[detailItem.id] || 0) === 0 ? (
+                <button className="cafe-add-btn" onClick={() => updateQty(detailItem, 1)} type="button">
+                  Add to Cart
+                </button>
+              ) : (
+                <div className="cafe-stepper">
+                  <button onClick={() => updateQty(detailItem, -1)} aria-label="Decrease quantity" type="button">
+                    <Minus size={14} strokeWidth={2.4} />
+                  </button>
+                  <span>{cart[detailItem.id]}</span>
+                  <button onClick={() => updateQty(detailItem, 1)} aria-label="Increase quantity" type="button">
+                    <Plus size={14} strokeWidth={2.4} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <PaymentMethodModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        amount={totalPrice}
+        label={`${totalItems} item${totalItems > 1 ? "s" : ""}`}
+        confirming={placingOrder}
+        onConfirm={handlePlaceOrder}
+      />
 
       <CafeOrderSuccess
         open={success}

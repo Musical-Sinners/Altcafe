@@ -273,6 +273,39 @@
 
 .profile-logout-btn { width: 100%; }
 
+/* "Delete Account" — a plain text-style link below Log Out, deliberately
+   quieter than the Log Out button so it doesn't compete for attention,
+   but still clearly a destructive/danger action via its color. */
+.profile-delete-account-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--color-danger, #d92d20);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-delete-account-btn:hover { opacity: 0.8; }
+
+.profile-delete-warning-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(217, 45, 32, 0.1);
+  color: var(--color-danger, #d92d20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
 /* Edit profile form (inside Modal) */
 .profile-edit-form {
   display: flex;
@@ -297,7 +330,7 @@
   font-size: 15px;
   font-family: var(--font-body);
   color: var(--color-text);
-  .profile-page { background: transparent; }
+  background: transparent;
   transition: border-color 0.15s var(--ease-out);
 }
 

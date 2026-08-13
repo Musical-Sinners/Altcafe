@@ -157,7 +157,7 @@ export async function saveSlotConfig({ turfId, day, slots }) {
  * the booking doc (denormalized) so the Admin panel can list bookings
  * without doing a separate lookup per row for every user.
  */
-export async function createBooking(uid, { turfId, turf, location, day, time, price, userName, userContact }) {
+export async function createBooking(uid, { turfId, turf, location, day, time, price, userName, userContact, paymentMethod }) {
   const bookingId = getBookingDocId({ turfId, day, time });
   const bookingRef = doc(db, "bookings", bookingId);
   const slotConfigRef = doc(db, "booking_slots", getBookingSlotConfigId({ turfId, day }));
@@ -187,16 +187,17 @@ export async function createBooking(uid, { turfId, turf, location, day, time, pr
       userName: userName || "",
       userContact: userContact || "",
       status: "confirmed",
+      paymentMethod: paymentMethod || "cash",
       created_at: new Date().toISOString(),
     });
 
     logPayload = {
       action: "booking-created",
       title: "New booking",
-      detail: `${userName || userContact || uid} booked ${turf} on ${formatBookingDate(day)} at ${time}`,
+      detail: `${userName || userContact || uid} booked ${turf} on ${formatBookingDate(day)} at ${time} (${paymentMethod || "cash"})`,
       targetType: "booking",
       targetId: bookingId,
-      meta: { uid, turfId, turf, location, day, time, price, userName, userContact },
+      meta: { uid, turfId, turf, location, day, time, price, userName, userContact, paymentMethod: paymentMethod || "cash" },
     };
 
     return bookingId;
@@ -217,7 +218,7 @@ export async function cancelBooking({ bookingId, turfId, day, time, canceledBy =
   let resolvedUser = "unknown";
   let logPayload = null;
 
-  return runTransaction(db, async (transaction) => {
+  const result = await runTransaction(db, async (transaction) => {
     const bookingSnap = await transaction.get(bookingRef);
     if (!bookingSnap.exists()) {
       throw new Error("booking-not-found");
@@ -268,10 +269,10 @@ export async function cancelBooking({ bookingId, turfId, day, time, canceledBy =
   });
 
   if (logPayload) {
-    await recordAdminActivity({
-      ...logPayload,
-    });
+    await recordAdminActivity(logPayload);
   }
+
+  return result;
 }
 
 /**

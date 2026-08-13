@@ -236,6 +236,7 @@ function AdminBookings() {
                 <th>Date</th>
                 <th>Time</th>
                 <th>Status</th>
+                <th>Payment</th>
                 <th>Price</th>
                 <th>Booked On</th>
                 <th>Action</th>
@@ -253,6 +254,11 @@ function AdminBookings() {
                   <td>
                     <span className={`admin-booking-status ${b.status === "canceled" ? "canceled" : "confirmed"}`}>
                       {b.status || "confirmed"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`admin-payment-pill ${b.paymentMethod === "qr" ? "qr" : "cash"}`}>
+                      {b.paymentMethod === "qr" ? "QR" : "Cash"}
                     </span>
                   </td>
                   <td>₹{b.price}</td>

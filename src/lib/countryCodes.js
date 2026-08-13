@@ -6,8 +6,8 @@
 // BD numbers are 10 digits after +880 (e.g. 1XXXXXXXXX).
 // IN numbers are 10 digits after +91 (e.g. 9XXXXXXXXX).
 export const COUNTRY_CODES = [
-  { code: "+880", flag: "🇧🇩", name: "Bangladesh", digits: 10, example: "1XXXXXXXXX" },
   { code: "+91", flag: "🇮🇳", name: "India", digits: 10, example: "9XXXXXXXXX" },
+  { code: "+880", flag: "🇧🇩", name: "Bangladesh", digits: 10, example: "1XXXXXXXXX" },
   { code: "+1", flag: "🇺🇸", name: "USA/Canada", digits: 10, example: "2015550123" },
   { code: "+44", flag: "🇬🇧", name: "UK", digits: 10, example: "7400123456" },
   { code: "+971", flag: "🇦🇪", name: "UAE", digits: 9, example: "501234567" },

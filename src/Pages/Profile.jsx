@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
+import { signOut, deleteUser } from "firebase/auth";
 import {
   Pencil,
   LogOut,
@@ -18,9 +18,11 @@ import {
   Link2,
   Info,
   Gift,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { auth } from "../firebase";
-import { getUserProfile, updateUserProfile } from "../lib/userService";
+import { getUserProfile, updateUserProfile, deleteUserProfile } from "../lib/userService";
 import Button from "../components/Button";
 import Modal from "../components/Modal";
 import Skeleton from "../components/Skeleton";
@@ -43,6 +45,8 @@ function Profile() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
 
   useEffect(() => {
@@ -144,6 +148,40 @@ function Profile() {
     setLogoutOpen(false);
     showToast("Logged out", "info");
     navigate("/login");
+  };
+
+  // Lets a user remove their own account. Reuses the same soft-delete
+  // (tombstone) that the admin panel uses, so the Firestore profile is
+  // marked "removed" rather than hard-deleted, and re-signing-up with the
+  // same email later goes through the normal reactivation flow.
+  const handleDeleteAccount = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    setDeleting(true);
+    try {
+      await deleteUserProfile(currentUser.uid);
+
+      // Also try to delete the actual Firebase Auth account so the person
+      // can sign up fresh later if they want to. This can fail with
+      // "auth/requires-recent-login" if they signed in a while ago — in
+      // that case we still succeeded at removing their data, so we just
+      // sign them out instead of blocking the whole deletion on this step.
+      try {
+        await deleteUser(currentUser);
+      } catch (authErr) {
+        console.error("Could not delete Auth account, signing out instead:", authErr);
+        await signOut(auth);
+      }
+
+      setDeleteOpen(false);
+      showToast("Your account has been deleted", "info");
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not delete your account. Please try again.", "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -279,6 +317,15 @@ function Profile() {
         >
           Log Out
         </Button>
+
+        <button
+          type="button"
+          className="profile-delete-account-btn"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 size={15} strokeWidth={2.1} />
+          Delete Account
+        </button>
       </div>
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)}>
@@ -330,6 +377,25 @@ function Profile() {
           </Button>
           <Button variant="danger" icon={LogOut} onClick={handleLogout}>
             Log Out
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} dismissible={!deleting}>
+        <div className="profile-delete-warning-icon">
+          <AlertTriangle size={22} strokeWidth={2} />
+        </div>
+        <h2 style={{ marginBottom: 8 }}>Delete Your Account?</h2>
+        <p className="profile-logout-copy">
+          This will permanently remove your profile, wallet balance, and
+          referral history. This cannot be undone.
+        </p>
+        <div className="profile-logout-actions">
+          <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" icon={Trash2} onClick={handleDeleteAccount} loading={deleting}>
+            Delete Permanently
           </Button>
         </div>
       </Modal>

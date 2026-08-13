@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings, Coffee } from "lucide-react";
 import "./AdminSidebar.css";
 
 const links = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+  { to: "/admin/cafe", label: "Cafe", icon: Coffee },
   { to: "/admin/wallet", label: "Wallet", icon: Wallet },
   { to: "/admin/rewards", label: "Rewards", icon: Gift },
   { to: "/admin/settings", label: "Settings", icon: Settings },

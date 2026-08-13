@@ -40,7 +40,7 @@ function Login() {
   const referralCodeFromLink = (searchParams.get("ref") || "").trim().toUpperCase();
 
   // phone flow state
-  const [countryCode, setCountryCode] = useState("+880");
+  const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [phoneName, setPhoneName] = useState("");
   const [phonePassword, setPhonePassword] = useState("");
@@ -151,6 +151,13 @@ function Login() {
     setLoading(true);
     try {
       const result = await signInWithEmailAndPassword(auth, email, emailPassword);
+
+      // Firebase's cached user object can have a stale emailVerified value
+      // right after sign-in — even if the user already clicked the
+      // verification link in another tab. Reload from the server so we
+      // check the real, current status instead of a stale cached one.
+      await result.user.reload();
+
       const userRecord = await getUserRecord(result.user.uid);
 
       if (userRecord?.account_status === "removed") {

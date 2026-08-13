@@ -13,6 +13,7 @@ import AboutUs from "./pages/AboutUs";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminBookings from "./pages/AdminBookings";
+import AdminCafe from "./pages/AdminCafe";
 import AdminWallet from "./pages/AdminWallet";
 import AdminRewards from "./pages/AdminRewards";
 import AdminSettings from "./pages/AdminSettings";
@@ -43,6 +44,7 @@ function App() {
             <Route index element={<Admin />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="bookings" element={<AdminBookings />} />
+            <Route path="cafe" element={<AdminCafe />} />
             <Route path="wallet" element={<AdminWallet />} />
             <Route path="rewards" element={<AdminRewards />} />
             <Route path="settings" element={<AdminSettings />} />
