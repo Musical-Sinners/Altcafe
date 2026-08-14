@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings, Coffee, MessageSquareText } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings, Coffee, MessageSquareText, Info } from "lucide-react";
 import "./AdminSidebar.css";
 
 const links = [
@@ -10,6 +10,7 @@ const links = [
   { to: "/admin/wallet", label: "Wallet", icon: Wallet },
   { to: "/admin/reviews", label: "Reviews", icon: MessageSquareText },
   { to: "/admin/rewards", label: "Rewards", icon: Gift },
+  { to: "/admin/about-us", label: "About Us", icon: Info },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

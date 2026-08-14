@@ -1,39 +1,75 @@
-import { BadgeCheck, Crown, Shield, Code2, Users, Mail, Phone, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  BadgeCheck,
+  Code2,
+  ClipboardList,
+  Mail,
+  Phone,
+  MapPin,
+  Link2,
+  Briefcase,
+  Terminal,
+  MessageCircle,
+} from "lucide-react";
+import { DEFAULT_ABOUT_CONTACT, listenToAboutContact } from "../lib/aboutConfig";
+import antorPhoto from "../assets/team/antor-biswas.png";
+import shadmanPhoto from "../assets/team/shadman-rahman.png";
 import "./AboutUs.css";
+
+function waLink(number) {
+  return `https://wa.me/${number.replace(/[^0-9]/g, "")}`;
+}
 
 const team = [
   {
     role: "Developer",
-    name: "Your Name",
+    name: "Antor Biswas",
+    subtitle: "CSE (IOT, Cyber Security & Blockchain Tech)",
+    org: "Institute of Engineering and Management, Kolkata",
     icon: Code2,
     colorClass: "about-team-dev",
-    details: ["Frontend and Firebase integration", "Referral flow and profile screens", "React UI polish"],
+    photo: antorPhoto,
+    links: [
+      { icon: Link2, label: "Facebook", href: "https://www.facebook.com/antor.biswas.965" },
+      { icon: Briefcase, label: "LinkedIn", href: "https://www.linkedin.com/in/antor-biswas-680752238" },
+      { icon: Terminal, label: "GitHub", href: "https://github.com/antor1010" },
+      { icon: MessageCircle, label: "WhatsApp", href: waLink("+916297751533") },
+    ],
   },
   {
-    role: "Admin",
-    name: "Another Person",
-    icon: Shield,
-    colorClass: "about-team-admin",
-    details: ["User support and moderation", "Bookings and wallet oversight", "Content and updates review"],
+    role: "Developer",
+    name: "Shadman Rahman Anannya",
+    subtitle: "CSE",
+    org: "Daffodil International University",
+    icon: Code2,
+    colorClass: "about-team-dev",
+    photo: shadmanPhoto,
+    links: [
+      { icon: Link2, label: "Facebook", href: "https://www.facebook.com/shadman.rahman.2024" },
+      { icon: Briefcase, label: "LinkedIn", href: "https://www.linkedin.com/in/shadman-rahman-anannya" },
+      { icon: MessageCircle, label: "WhatsApp", href: waLink("+8801303015691") },
+    ],
   },
   {
-    role: "Owner",
-    name: "Project Owner",
-    icon: Crown,
+    role: "Project Manager",
+    name: "Md. Akram Islam Molla",
+    subtitle: "CSE (IOT, Cyber Security & Blockchain Tech)",
+    org: "Institute of Engineering and Management, Kolkata",
+    icon: ClipboardList,
     colorClass: "about-team-owner",
-    details: ["Business approvals", "Feature priorities", "Revenue and operations"],
+    photo: null,
+    links: [{ icon: MessageCircle, label: "WhatsApp", href: waLink("+919883857132") }],
   },
-];
-
-const upcomingItems = [
-  "Payment methods management",
-  "Notification preferences",
-  "Help and support contacts",
-  "Terms, privacy, and policy links",
-  "Admin contact and escalation details",
 ];
 
 function AboutUs() {
+  const [contact, setContact] = useState(DEFAULT_ABOUT_CONTACT);
+
+  useEffect(() => {
+    const unsubscribe = listenToAboutContact(setContact);
+    return unsubscribe;
+  }, []);
+
   return (
     <div className="about-page">
       <div className="about-inner">
@@ -42,33 +78,42 @@ function AboutUs() {
             <p className="about-kicker">About Us</p>
             <h1>Who builds and runs Altcafe</h1>
             <p className="about-copy">
-              This page is a demo team overview for the developer, admin, and owner roles.
-              Replace the placeholder details with your real team names when you are ready.
+              Meet the team behind the app — the people who built it and keep it running.
             </p>
           </div>
           <span className="about-badge">
             <BadgeCheck size={16} strokeWidth={2.2} />
-            Demo profile
+            Verified team
           </span>
         </section>
 
         <section className="about-team-grid">
-          {team.map(({ role, name, icon: Icon, colorClass, details }) => (
-            <article key={role} className={`surface-card about-team-card ${colorClass}`}>
+          {team.map(({ role, name, subtitle, org, icon: Icon, colorClass, photo, links }) => (
+            <article key={name} className={`surface-card about-team-card ${colorClass}`}>
               <div className="about-team-top">
-                <span className="about-team-icon">
-                  <Icon size={18} strokeWidth={2.2} />
-                </span>
-                <div>
-                  <p className="about-team-role">{role}</p>
-                  <h2>{name}</h2>
-                </div>
+                {photo ? (
+                  <img src={photo} alt={name} className="about-team-photo" />
+                ) : (
+                  <span className="about-team-icon">
+                    <Icon size={22} strokeWidth={2.2} />
+                  </span>
+                )}
+                <p className="about-team-role">{role}</p>
+                <h2>{name}</h2>
               </div>
               <ul className="about-team-list">
-                {details.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
+                <li>{subtitle}</li>
+                <li>{org}</li>
               </ul>
+              {links.length > 0 && (
+                <div className="about-team-links">
+                  {links.map(({ icon: LinkIcon, label, href }) => (
+                    <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label}>
+                      <LinkIcon size={16} strokeWidth={2.2} />
+                    </a>
+                  ))}
+                </div>
+              )}
             </article>
           ))}
         </section>
@@ -76,22 +121,20 @@ function AboutUs() {
         <section className="surface-card about-roadmap">
           <div className="about-roadmap-head">
             <div>
-              <p className="about-kicker">Coming Next</p>
-              <h2>What we will add later</h2>
+              <p className="about-kicker">Contact & Support</p>
+              <h2>Get in touch</h2>
             </div>
-            <Users size={18} strokeWidth={2.2} />
-          </div>
-          <div className="about-roadmap-grid">
-            {upcomingItems.map((item) => (
-              <div key={item} className="about-roadmap-item">
-                {item}
-              </div>
-            ))}
           </div>
           <div className="about-contact-row">
-            <span><Mail size={16} strokeWidth={2.2} /> support@example.com</span>
-            <span><Phone size={16} strokeWidth={2.2} /> +880 1XXX-XXXXXX</span>
-            <span><MapPin size={16} strokeWidth={2.2} /> Demo location</span>
+            <span>
+              <Mail size={16} strokeWidth={2.2} /> {contact.email}
+            </span>
+            <span>
+              <Phone size={16} strokeWidth={2.2} /> {contact.phone}
+            </span>
+            <span>
+              <MapPin size={16} strokeWidth={2.2} /> {contact.location}
+            </span>
           </div>
         </section>
       </div>

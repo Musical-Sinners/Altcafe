@@ -4,10 +4,7 @@ import { signOut, deleteUser } from "firebase/auth";
 import {
   Pencil,
   LogOut,
-  Bell,
-  CreditCard,
   HelpCircle,
-  FileText,
   ChevronRight,
   Trophy,
   CalendarCheck,
@@ -91,24 +88,9 @@ function Profile() {
 
   const menu = [
     {
-      icon: CreditCard,
-      label: "Payment Methods",
-      onClick: () => showToast("Payment methods page coming soon"),
-    },
-    {
-      icon: Bell,
-      label: "Notifications",
-      onClick: () => showToast("Notification settings coming soon"),
-    },
-    {
       icon: HelpCircle,
       label: "Help & Support",
       onClick: () => navigate("/about-us"),
-    },
-    {
-      icon: FileText,
-      label: "Terms & Privacy",
-      onClick: () => showToast("Terms & Privacy page coming soon"),
     },
     {
       icon: Info,

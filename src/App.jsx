@@ -18,6 +18,7 @@ import AdminCafe from "./pages/AdminCafe";
 import AdminWallet from "./pages/AdminWallet";
 import AdminRewards from "./pages/AdminRewards";
 import AdminReviews from "./pages/AdminReviews";
+import AdminAboutUs from "./pages/AdminAboutUs";
 import AdminSettings from "./pages/AdminSettings";
 import "./styles/theme.css";
 
@@ -51,6 +52,7 @@ function App() {
             <Route path="wallet" element={<AdminWallet />} />
             <Route path="rewards" element={<AdminRewards />} />
             <Route path="reviews" element={<AdminReviews />} />
+            <Route path="about-us" element={<AdminAboutUs />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 
