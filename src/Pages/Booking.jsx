@@ -12,6 +12,7 @@ import {
   getDateKey,
   getDefaultSlotMap,
   getMonthCalendar,
+  listenToBookingPrice,
   listenToBookingsForSlotState,
   listenToSlotConfig,
   listenToTurfPhotos,
@@ -38,6 +39,14 @@ function Booking() {
 
   useEffect(() => {
     const unsubscribe = listenToTurfPhotos(setTurfPhotos);
+    return unsubscribe;
+  }, []);
+
+  // Live turf rent price — set by the admin in Settings. Falls back to
+  // BOOKING_PRICE until the Firestore value loads (or if it's ever missing).
+  const [bookingPrice, setBookingPrice] = useState(BOOKING_PRICE);
+  useEffect(() => {
+    const unsubscribe = listenToBookingPrice(setBookingPrice);
     return unsubscribe;
   }, []);
 
@@ -144,7 +153,7 @@ function Booking() {
 
   const bookWithProfile = async (profile, paymentMethod, transactionId, creditApplied = 0) => {
     const currentUser = auth.currentUser;
-    const remaining = BOOKING_PRICE - creditApplied;
+    const remaining = bookingPrice - creditApplied;
 
     await createBooking(currentUser.uid, {
       turfId: activeTurf.id,
@@ -152,7 +161,7 @@ function Booking() {
       location: activeTurf.location,
       day: selectedDay,
       time: selectedSlot,
-      price: BOOKING_PRICE,
+      price: bookingPrice,
       walletCreditApplied: creditApplied,
       userName: profile?.name || "",
       userContact: profile?.phone || profile?.email || "",
@@ -214,11 +223,11 @@ function Booking() {
   };
 
   const handleUseWalletCredit = async () => {
-    const applied = Math.min(pendingProfile?.wallet_balance || 0, BOOKING_PRICE);
+    const applied = Math.min(pendingProfile?.wallet_balance || 0, bookingPrice);
     setWalletCreditApplied(applied);
     setWalletPromptOpen(false);
 
-    if (applied >= BOOKING_PRICE) {
+    if (applied >= bookingPrice) {
       // Wallet fully covers it — no cash/QR step needed at all.
       setWalletChoiceLoading(true);
       try {
@@ -398,7 +407,7 @@ function Booking() {
           loading={confirming}
           disabled={!selectedSlot}
         >
-          Continue to Payment · ₹{BOOKING_PRICE}
+          Continue to Payment · ₹{bookingPrice}
         </Button>
       </div>
 
@@ -413,7 +422,7 @@ function Booking() {
       <PaymentMethodModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        amount={BOOKING_PRICE - walletCreditApplied}
+        amount={bookingPrice - walletCreditApplied}
         label={`${activeTurf.name} · ${formatBookingDate(selectedDay)} ${selectedSlot || ""}`}
         confirming={payingBooking}
         onConfirm={handlePaymentConfirm}
@@ -423,7 +432,7 @@ function Booking() {
         open={walletPromptOpen}
         onClose={() => setWalletPromptOpen(false)}
         balance={pendingProfile?.wallet_balance || 0}
-        total={BOOKING_PRICE}
+        total={bookingPrice}
         onUse={handleUseWalletCredit}
         onSkip={handleSkipWalletCredit}
         loading={walletChoiceLoading}

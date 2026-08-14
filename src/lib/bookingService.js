@@ -2,7 +2,7 @@
 // since bookings are their own concern (used by the Booking page and by
 // the Admin > Bookings page).
 
-import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, where, writeBatch } from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, where, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { recordAdminActivity } from "./adminActivity";
 
@@ -13,9 +13,51 @@ export const BOOKING_TURFS = [
 ];
 
 export const BOOKING_TIME_SLOTS = ["4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"];
+// Fallback only — shown until the live price loads from Firestore, and used
+// if the settings doc is ever missing. The real, admin-editable price lives
+// in Firestore (see getBookingPrice/listenToBookingPrice/updateBookingPrice
+// below) so a change applies to every user instantly, with no redeploy.
 export const BOOKING_PRICE = 600;
 export const CALENDAR_START_YEAR = new Date().getFullYear();
 export const CALENDAR_END_YEAR = 2050;
+
+// --- Turf rent price (admin-editable) ---------------------------------
+// Single Firestore doc, same pattern as settings/payment for the QR code.
+export const BOOKING_PRICE_DOC = doc(db, "settings", "booking");
+
+export function listenToBookingPrice(callback) {
+  return onSnapshot(BOOKING_PRICE_DOC, (snap) => {
+    const price = snap.exists() ? Number(snap.data().price) : NaN;
+    callback(Number.isFinite(price) && price > 0 ? price : BOOKING_PRICE);
+  });
+}
+
+export async function getBookingPrice() {
+  const snap = await getDoc(BOOKING_PRICE_DOC);
+  const price = snap.exists() ? Number(snap.data().price) : NaN;
+  return Number.isFinite(price) && price > 0 ? price : BOOKING_PRICE;
+}
+
+export async function updateBookingPrice(price) {
+  const numericPrice = Number(price);
+  if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+    throw new Error("invalid-price");
+  }
+  await setDoc(
+    BOOKING_PRICE_DOC,
+    { price: numericPrice, updated_at: new Date().toISOString() },
+    { merge: true }
+  );
+
+  await recordAdminActivity({
+    action: "booking-price-updated",
+    title: "Turf price updated",
+    detail: `Turf rent price was changed to ₹${numericPrice}`,
+    targetType: "settings",
+    targetId: "booking",
+    meta: { price: numericPrice },
+  });
+}
 
 function normalizeKey(value) {
   return String(value || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");

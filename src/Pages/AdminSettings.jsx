@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { ShieldCheck, PlusCircle, Trash2, Lock, Users2, RefreshCw, QrCode, UploadCloud } from "lucide-react";
+import { ShieldCheck, PlusCircle, Trash2, Lock, Users2, RefreshCw, QrCode, UploadCloud, IndianRupee, Save } from "lucide-react";
 import {
   addAdminEmail,
   getAdminEmails,
@@ -14,6 +14,7 @@ import {
   readFileAsDataUrl,
   updatePaymentQr,
 } from "../lib/paymentConfig";
+import { BOOKING_PRICE, listenToBookingPrice, updateBookingPrice } from "../lib/bookingService";
 import { auth } from "../firebase";
 import { REFERRAL_REWARD, NEW_USER_DISCOUNT, MAX_WALLET_REWARD } from "../lib/userService";
 import Button from "../components/Button";
@@ -34,6 +35,13 @@ function AdminSettings() {
   const [qrPreview, setQrPreview] = useState(null);
   const [payeeNameInput, setPayeeNameInput] = useState(DEFAULT_PAYMENT_QR.payeeName);
   const [savingQr, setSavingQr] = useState(false);
+
+  // Turf rent price (shown to every user on the Booking page, and charged
+  // at checkout). Admin can change it any time — takes effect instantly
+  // for all users, no redeploy needed.
+  const [bookingPrice, setBookingPrice] = useState(BOOKING_PRICE);
+  const [priceInput, setPriceInput] = useState(String(BOOKING_PRICE));
+  const [savingPrice, setSavingPrice] = useState(false);
 
   const canEditAdminAccess = isBootstrapAdminEmail(currentAdminEmail);
 
@@ -60,6 +68,32 @@ function AdminSettings() {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = listenToBookingPrice((price) => {
+      setBookingPrice(price);
+      setPriceInput(String(price));
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleSavePrice = async () => {
+    const numericPrice = Number(priceInput);
+    if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+      showToast("Enter a valid price greater than 0.", "error");
+      return;
+    }
+    setSavingPrice(true);
+    try {
+      await updateBookingPrice(numericPrice);
+      showToast("Turf price updated");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not update the price. Please try again.", "error");
+    } finally {
+      setSavingPrice(false);
+    }
+  };
 
   const handleQrFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -225,6 +259,47 @@ function AdminSettings() {
               </div>
             ))
           )}
+        </div>
+      </div>
+
+      <div className="admin-users-card surface-card" style={{ marginBottom: 20 }}>
+        <div className="admin-settings-head">
+          <div>
+            <h2>Turf Rent Price</h2>
+            <p>
+              The price shown to every user on the Booking page and charged at checkout. Change it
+              here and it updates for everyone instantly — no app update needed.
+            </p>
+          </div>
+          <span className="admin-live-pill">
+            <IndianRupee size={14} strokeWidth={2.2} /> ₹{bookingPrice}
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap", marginTop: 14 }}>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label className="login-label" style={{ display: "block", marginBottom: 6 }}>
+              Price per booking (₹)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              className="admin-add-input"
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+              placeholder="e.g. 600"
+              style={{ width: "100%" }}
+            />
+          </div>
+          <Button
+            icon={Save}
+            loading={savingPrice}
+            onClick={handleSavePrice}
+            disabled={priceInput === String(bookingPrice) || priceInput.trim() === ""}
+          >
+            Save Price
+          </Button>
         </div>
       </div>
 

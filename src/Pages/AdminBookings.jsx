@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, ImagePlus, Lock, RefreshCw, ShoppingBag, Trash2, Unlock, XCircle } from "lucide-react";
 import {
-  BOOKING_PRICE,
   BOOKING_TIME_SLOTS,
   BOOKING_TURFS,
   CALENDAR_END_YEAR,

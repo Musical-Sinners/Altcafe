@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Wallet as WalletIcon } from "lucide-react";
+import { REFERRAL_REWARD } from "../lib/userService";
 import "./WalletCard.css";
 
 /**
@@ -47,7 +48,7 @@ function WalletCard({ balance, cap, referredCount }) {
             <div className="wallet-stat-label">Referrals</div>
           </div>
           <div className="wallet-stat">
-            <div className="wallet-stat-num">₹{referredCount * 100}</div>
+            <div className="wallet-stat-num">₹{referredCount * REFERRAL_REWARD}</div>
             <div className="wallet-stat-label">Total Earned</div>
           </div>
         </div>

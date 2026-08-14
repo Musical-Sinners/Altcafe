@@ -2,6 +2,7 @@ import { useState } from "react";
 import QRCode from "react-qr-code";
 import { Copy, Check, Share2, Gift } from "lucide-react";
 import { useToast } from "../contexts/ToastContext";
+import { REFERRAL_REWARD } from "../lib/userService";
 import Button from "./Button";
 import "./ReferralCard.css";
 
@@ -27,7 +28,7 @@ function ReferralCard({ referralCode, referralLink }) {
         </span>
         <div>
           <h2 style={{ fontSize: 17 }}>Invite Friends</h2>
-          <p className="referral-sub">Earn ₹100 every successful referral</p>
+          <p className="referral-sub">Earn ₹{REFERRAL_REWARD} every successful referral</p>
         </div>
       </div>
 
