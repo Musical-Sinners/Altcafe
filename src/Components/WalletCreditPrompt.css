@@ -1,0 +1,61 @@
+.wallet-prompt-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.wallet-prompt-copy {
+  font-size: 13.5px;
+  color: var(--color-subtext);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.wallet-prompt-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-bg);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+}
+
+.wallet-prompt-breakdown > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-subtext);
+}
+
+.wallet-prompt-breakdown-final {
+  padding-top: 8px;
+  margin-top: 2px;
+  border-top: 1px solid var(--color-line);
+  font-weight: 700;
+  color: var(--color-text) !important;
+}
+
+.wallet-prompt-breakdown-final span { color: var(--color-text); }
+
+.wallet-prompt-use-btn { width: 100%; margin-bottom: 10px; }
+
+.wallet-prompt-skip-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--color-subtext);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.wallet-prompt-skip-btn:hover { color: var(--color-text); }

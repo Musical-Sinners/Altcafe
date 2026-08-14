@@ -69,11 +69,16 @@ function Wallet() {
             variant="secondary"
             icon={ArrowDownToLine}
             className="wallet-withdraw-btn"
-            onClick={() => showToast("Withdrawals are coming soon", "info")}
+            onClick={() =>
+              showToast("Wallet credit can only be used for turf bookings and cafe orders — it can't be withdrawn.", "info")
+            }
           >
             Withdraw
           </Button>
         </div>
+        <p className="wallet-credit-note">
+          Referral wallet credit can be spent on turf bookings and cafe orders only — it can't be withdrawn as cash.
+        </p>
 
         <section className="wallet-section">
           <h2>Transaction History</h2>

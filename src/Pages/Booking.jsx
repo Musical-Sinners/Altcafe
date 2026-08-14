@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Clock, CheckCircle, Phone, ChevronLeft, ChevronRight } from "lucide-react";
+import { MapPin, Clock, CheckCircle, Phone, ChevronLeft, ChevronRight, Volleyball } from "lucide-react";
 import { auth } from "../firebase";
-import { getUserProfile, updateUserProfile, addWalletTransaction } from "../lib/userService";
+import { getUserProfile, updateUserProfile, addWalletTransaction, applyWalletCredit } from "../lib/userService";
 import {
   BOOKING_TURFS,
   BOOKING_TIME_SLOTS,
@@ -14,6 +14,7 @@ import {
   getMonthCalendar,
   listenToBookingsForSlotState,
   listenToSlotConfig,
+  listenToTurfPhotos,
   startOfMonth,
 } from "../lib/bookingService";
 import { COUNTRY_CODES, getCountryConfig } from "../lib/countryCodes";
@@ -22,6 +23,7 @@ import Button from "../components/Button";
 import Modal from "../components/Modal";
 import BookingSuccess from "../components/BookingSuccess";
 import PaymentMethodModal from "../components/PaymentMethodModal";
+import WalletCreditPrompt from "../components/WalletCreditPrompt";
 import "./Booking.css";
 import "./Login.css"; // reuses the phone-row / country-select input styles
 
@@ -31,6 +33,20 @@ function Booking() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [success, setSuccess] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [turfPhotos, setTurfPhotos] = useState({});
+  const [photoTick, setPhotoTick] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = listenToTurfPhotos(setTurfPhotos);
+    return unsubscribe;
+  }, []);
+
+  // Advances every turf's photo gallery together, every 3s — turfs with
+  // only one (or zero) photos just stay put since index % length is 0.
+  useEffect(() => {
+    const id = setInterval(() => setPhotoTick((t) => t + 1), 3000);
+    return () => clearInterval(id);
+  }, []);
 
   // Full month calendar — same date-picking pattern used in the Admin panel,
   // so users can book any day (not just a fixed 5-day strip).
@@ -57,6 +73,12 @@ function Booking() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState(null);
   const [payingBooking, setPayingBooking] = useState(false);
+
+  // Wallet credit (referral rewards) — asked once, right before payment,
+  // never applied silently.
+  const [walletPromptOpen, setWalletPromptOpen] = useState(false);
+  const [walletCreditApplied, setWalletCreditApplied] = useState(0);
+  const [walletChoiceLoading, setWalletChoiceLoading] = useState(false);
 
   const todayStart = useMemo(() => {
     const today = new Date();
@@ -120,8 +142,10 @@ function Booking() {
     setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1));
   };
 
-  const bookWithProfile = async (profile, paymentMethod) => {
+  const bookWithProfile = async (profile, paymentMethod, transactionId, creditApplied = 0) => {
     const currentUser = auth.currentUser;
+    const remaining = BOOKING_PRICE - creditApplied;
+
     await createBooking(currentUser.uid, {
       turfId: activeTurf.id,
       turf: activeTurf.name,
@@ -129,23 +153,30 @@ function Booking() {
       day: selectedDay,
       time: selectedSlot,
       price: BOOKING_PRICE,
+      walletCreditApplied: creditApplied,
       userName: profile?.name || "",
       userContact: profile?.phone || profile?.email || "",
-      paymentMethod,
+      paymentMethod: remaining === 0 ? "wallet" : paymentMethod,
+      transactionId,
     });
 
-    // Record this booking as a wallet transaction so it shows up on the
-    // Wallet and History pages. Negative amount = money spent.
-    await addWalletTransaction(currentUser.uid, {
-      label: `${activeTurf.name} · ${formatBookingDate(selectedDay)} ${selectedSlot}`,
-      amount: -BOOKING_PRICE,
-    });
+    const label = `${activeTurf.name} · ${formatBookingDate(selectedDay)} ${selectedSlot}`;
+
+    // The wallet-credit portion actually reduces the real balance (it's
+    // real money already given to them). The cash/QR portion is only
+    // logged for the Wallet/History pages — it was never held as balance.
+    if (creditApplied > 0) {
+      await applyWalletCredit(currentUser.uid, creditApplied, `${label} (wallet credit)`);
+    }
+    if (remaining > 0) {
+      await addWalletTransaction(currentUser.uid, { label, amount: -remaining });
+    }
 
     setSuccess(true);
   };
 
   // Step 1: validate + fetch profile, then either gate on phone number or
-  // go straight to the payment-method step (booking isn't written yet).
+  // move to the wallet-credit prompt (if they have any) / payment step.
   const handleConfirm = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
@@ -164,14 +195,53 @@ function Booking() {
         setPhoneModalOpen(true);
         return;
       }
-      setPendingProfile(profile);
-      setPaymentModalOpen(true);
+      proceedPastPhoneGate(profile);
     } catch (err) {
       console.error(err);
       showToast("Could not start booking. Please try again.", "error");
     } finally {
       setConfirming(false);
     }
+  };
+
+  // Shared next-step logic once we know the user's phone is on file —
+  // asks about wallet credit first if they have any, otherwise goes
+  // straight to picking a payment method.
+  const proceedPastPhoneGate = (profile) => {
+    setPendingProfile(profile);
+    setWalletCreditApplied(0);
+    setWalletPromptOpen(true);
+  };
+
+  const handleUseWalletCredit = async () => {
+    const applied = Math.min(pendingProfile?.wallet_balance || 0, BOOKING_PRICE);
+    setWalletCreditApplied(applied);
+    setWalletPromptOpen(false);
+
+    if (applied >= BOOKING_PRICE) {
+      // Wallet fully covers it — no cash/QR step needed at all.
+      setWalletChoiceLoading(true);
+      try {
+        await bookWithProfile(pendingProfile, "wallet", "", applied);
+      } catch (err) {
+        console.error(err);
+        if (err.message === "slot-already-booked" || err.message === "slot-closed") {
+          showToast("That slot was just taken. Please pick another.", "error");
+        } else {
+          showToast("Could not confirm booking. Please try again.", "error");
+        }
+      } finally {
+        setWalletChoiceLoading(false);
+      }
+    } else {
+      setPaymentModalOpen(true);
+    }
+  };
+
+  const handleSkipWalletCredit = () => {
+    setWalletCreditApplied(0);
+    setWalletPromptOpen(false);
+    setPaymentModalOpen(true);
   };
 
   const handleSavePhoneAndContinue = async (e) => {
@@ -192,8 +262,7 @@ function Booking() {
       const profile = await getUserProfile(currentUser.uid);
       setPhoneModalOpen(false);
       setPhoneNumber("");
-      setPendingProfile(profile);
-      setPaymentModalOpen(true);
+      proceedPastPhoneGate(profile);
     } catch (err) {
       console.error(err);
       showToast("Could not save your phone number. Please try again.", "error");
@@ -204,10 +273,10 @@ function Booking() {
 
   // Step 2: called once the user picks QR or Cash and taps confirm — this
   // is the point where the booking actually gets written to Firestore.
-  const handlePaymentConfirm = async (method) => {
+  const handlePaymentConfirm = async (method, transactionId) => {
     setPayingBooking(true);
     try {
-      await bookWithProfile(pendingProfile, method);
+      await bookWithProfile(pendingProfile, method, transactionId, walletCreditApplied);
       setPaymentModalOpen(false);
     } catch (err) {
       console.error(err);
@@ -228,21 +297,34 @@ function Booking() {
         <h1 className="booking-title">Available Turfs</h1>
 
         <div className="turf-list">
-          {BOOKING_TURFS.map((turf) => (
-            <button
-              key={turf.id}
-              className={`turf-card ${selectedTurf === turf.id ? "selected" : ""}`}
-              onClick={() => setSelectedTurf(turf.id)}
-            >
-              <div className="turf-card-icon">⚽</div>
-              <div className="turf-card-body">
-                <div className="turf-card-name">{turf.name}</div>
-                <div className="turf-card-meta">
-                  <MapPin size={13} strokeWidth={2.2} /> {turf.location}
+          {BOOKING_TURFS.map((turf) => {
+            const photos = turfPhotos[turf.id] || [];
+            const activePhoto = photos.length ? photos[photoTick % photos.length] : null;
+            return (
+              <button
+                key={turf.id}
+                className={`turf-card ${selectedTurf === turf.id ? "selected" : ""}`}
+                onClick={() => setSelectedTurf(turf.id)}
+              >
+                <div className="turf-card-photo">
+                  {activePhoto ? <img src={activePhoto} alt={turf.name} /> : <Volleyball size={44} strokeWidth={1.6} />}
+                  {photos.length > 1 && (
+                    <div className="turf-card-photo-dots">
+                      {photos.map((p, i) => (
+                        <span key={p} className={i === photoTick % photos.length ? "active" : ""} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="turf-card-body">
+                  <div className="turf-card-name">{turf.name}</div>
+                  <div className="turf-card-meta">
+                    <MapPin size={10} strokeWidth={2.2} /> {turf.location}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         <section className="booking-section">
@@ -331,10 +413,20 @@ function Booking() {
       <PaymentMethodModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        amount={BOOKING_PRICE}
+        amount={BOOKING_PRICE - walletCreditApplied}
         label={`${activeTurf.name} · ${formatBookingDate(selectedDay)} ${selectedSlot || ""}`}
         confirming={payingBooking}
         onConfirm={handlePaymentConfirm}
+      />
+
+      <WalletCreditPrompt
+        open={walletPromptOpen}
+        onClose={() => setWalletPromptOpen(false)}
+        balance={pendingProfile?.wallet_balance || 0}
+        total={BOOKING_PRICE}
+        onUse={handleUseWalletCredit}
+        onSkip={handleSkipWalletCredit}
+        loading={walletChoiceLoading}
       />
 
       <Modal open={phoneModalOpen} onClose={() => setPhoneModalOpen(false)} dismissible={!savingPhone}>

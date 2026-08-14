@@ -11,14 +11,61 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
 const MENU_COLLECTION = "cafe_menu";
 const ORDERS_COLLECTION = "cafe_orders";
+// Single doc that tracks "today's last token" so tokens can be handed out
+// atomically (no two orders ever get the same number) and reset on their own.
+const TOKEN_COUNTER_DOC = doc(db, "cafe_meta", "token_counter");
+const MAX_TOKEN = 1000;
+
+/**
+ * Order lifecycle. Admin moves an order forward through these phases;
+ * the user sees the same phase live via listenToOrder / listenToUserOrders.
+ */
+export const ORDER_PHASES = ["placed", "accepted", "preparing", "ready", "completed"];
+export const ORDER_PHASE_LABELS = {
+  placed: "Order Placed",
+  accepted: "Accepted",
+  preparing: "Preparing",
+  ready: "Ready for Pickup",
+  completed: "Completed",
+};
+// Shown as the "waiting on X" line while cancelled isn't itself a step.
+export const CANCELLED_PHASE = "cancelled";
+
+function todayKey() {
+  // Local calendar date (not UTC) so the token resets at local midnight.
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Atomically hands out the next daily token: 1-1000, wrapping back to 1
+ * either when 1000 is exceeded or when the calendar date has rolled over
+ * since the last order. Runs inside the same transaction as createOrder
+ * so two simultaneous orders can never collide on the same token.
+ */
+async function claimNextToken(transaction) {
+  const counterSnap = await transaction.get(TOKEN_COUNTER_DOC);
+  const today = todayKey();
+  const data = counterSnap.exists() ? counterSnap.data() : null;
+
+  let nextToken = 1;
+  if (data && data.date === today && Number.isFinite(data.lastToken)) {
+    nextToken = data.lastToken >= MAX_TOKEN ? 1 : data.lastToken + 1;
+  }
+
+  transaction.set(TOKEN_COUNTER_DOC, { date: today, lastToken: nextToken });
+  return nextToken;
+}
 // A single marker doc that records "the menu has been seeded at least
 // once". Without this, deleting every menu item would make the
 // collection empty again, and ensureMenuSeeded() would think it's a
@@ -139,34 +186,169 @@ export async function deleteMenuItem(id) {
 }
 
 /**
- * Saves a placed cafe order so the Admin panel can see it. The wallet
- * debit itself is still handled separately via addWalletTransaction —
- * this is just the order record (what was ordered, by whom).
+ * Admin-only: wipes every menu item at once (e.g. clearing seed/demo data
+ * before going live). Does NOT touch the seed marker, so ensureMenuSeeded()
+ * won't re-insert the old seed list afterwards — the menu just stays empty
+ * until the admin adds real items.
  */
-export async function createOrder(uid, { items, total, userName, userContact, paymentMethod }) {
-  const orderRef = await addDoc(collection(db, ORDERS_COLLECTION), {
-    uid,
-    items, // [{ name, qty, price }]
-    total,
-    userName: userName || "",
-    userContact: userContact || "",
-    paymentMethod: paymentMethod || "cash",
-    status: "placed", // "placed" (waiting) -> "done" (delivered)
-    created_at: new Date().toISOString(),
+export async function deleteAllMenuItems() {
+  const snap = await getDocs(collection(db, MENU_COLLECTION));
+  if (snap.empty) return;
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
+/**
+ * Saves a placed cafe order so the Admin panel can see it, and hands it a
+ * unique daily token (1-1000, resets every day / after 1000) in the same
+ * transaction so the order and its token are always created together.
+ * The wallet debit itself is still handled separately via
+ * addWalletTransaction — this is just the order record.
+ *
+ * An order's `status` (payment confirmation: "pending" | "confirmed") is
+ * separate from its `phase` (kitchen workflow: placed/accepted/...). Every
+ * new order starts as `status: "pending"` — cash orders wait for an admin
+ * to confirm the cash was received, and QR orders wait for an admin to
+ * check the customer-supplied transaction ID against the payment. Only an
+ * admin can move an order to "confirmed"; there's no customer-facing way
+ * to do it.
+ */
+export async function createOrder(uid, { items, total, walletCreditApplied, userName, userContact, paymentMethod, transactionId, location }) {
+  const orderRef = doc(collection(db, ORDERS_COLLECTION));
+
+  const token = await runTransaction(db, async (transaction) => {
+    const tokenNumber = await claimNextToken(transaction);
+    transaction.set(orderRef, {
+      uid,
+      items, // [{ name, qty, price }]
+      total,
+      walletCreditApplied: walletCreditApplied || 0,
+      userName: userName || "",
+      userContact: userContact || "",
+      paymentMethod: paymentMethod || "cash",
+      transactionId: paymentMethod === "qr" ? transactionId || "" : "",
+      status: "pending", // payment confirmation state — see doc comment above
+      // Where the customer is: { type: "table"|"standing"|"turf", table: number|null }
+      location: location || null,
+      token: tokenNumber,
+      phase: "placed", // see ORDER_PHASES
+      estimatedMinutes: 10, // admin can revise this as the order moves along
+      created_at: new Date().toISOString(),
+      status_updated_at: new Date().toISOString(),
+    });
+    return tokenNumber;
   });
-  return orderRef.id;
+
+  return { id: orderRef.id, token };
+}
+
+/**
+ * Admin-only action: moves a pending order to "confirmed". There is no
+ * customer-facing equivalent — a user can never confirm their own order,
+ * cash or QR.
+ */
+export async function confirmOrder(orderId) {
+  await updateDoc(doc(db, ORDERS_COLLECTION, orderId), {
+    status: "confirmed",
+    confirmed_at: new Date().toISOString(),
+  });
 }
 
 /**
  * Live-subscribes to every cafe order, most recent first — used by the
  * Admin panel's Cafe > Orders tab.
  */
-export function listenToOrders(callback) {
-  return onSnapshot(query(collection(db, ORDERS_COLLECTION), orderBy("created_at", "desc")), (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+export function listenToOrders(callback, onError) {
+  return onSnapshot(
+    query(collection(db, ORDERS_COLLECTION), orderBy("created_at", "desc")),
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    },
+    onError
+  );
+}
+
+/**
+ * Fetches every cafe order, most recent first — used by the Admin >
+ * Wallet page to total up cafe income.
+ */
+export async function getAllOrders() {
+  const snap = await getDocs(query(collection(db, ORDERS_COLLECTION), orderBy("created_at", "desc")));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Admin-only: permanently deletes a single order doc (used for clearing
+ * out cancelled orders once they're no longer needed).
+ */
+export async function deleteOrder(orderId) {
+  await deleteDoc(doc(db, ORDERS_COLLECTION, orderId));
+}
+
+/**
+ * Admin-only: permanently deletes every cancelled order at once — used
+ * by the "Clear Cancelled" button. An order counts as cancelled the same
+ * way the Admin > Cafe tabs do: phase === "cancelled" (older orders
+ * without a phase field are never cancelled, so they're untouched).
+ */
+export async function deleteAllCancelledOrders() {
+  const snap = await getDocs(query(collection(db, ORDERS_COLLECTION), where("phase", "==", "cancelled")));
+  if (snap.empty) return;
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
+/**
+ * Live-subscribes to a single order — used for the customer-facing live
+ * tracking view (token, phase, ETA).
+ */
+export function listenToOrder(orderId, callback) {
+  return onSnapshot(doc(db, ORDERS_COLLECTION, orderId), (snap) => {
+    callback(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   });
 }
 
-export async function updateOrderStatus(id, status) {
-  await updateDoc(doc(db, ORDERS_COLLECTION, id), { status });
+/**
+ * Live-subscribes to a user's own orders that haven't reached a final
+ * phase yet (not "completed" or "cancelled") — used to fire in-app
+ * notifications when the phase changes.
+ */
+export function listenToActiveUserOrders(uid, callback) {
+  return onSnapshot(query(collection(db, ORDERS_COLLECTION), where("uid", "==", uid)), (snap) => {
+    const orders = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((o) => o.phase !== "completed" && o.phase !== CANCELLED_PHASE)
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    callback(orders);
+  });
+}
+
+/**
+ * Live-subscribes to ALL of a user's cafe orders (every phase, most
+ * recent first) — used by the History page so past and in-progress
+ * orders both show up with their token, items, and current phase.
+ */
+export function listenToUserOrders(uid, callback) {
+  return onSnapshot(query(collection(db, ORDERS_COLLECTION), where("uid", "==", uid)), (snap) => {
+    const orders = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    callback(orders);
+  });
+}
+
+/**
+ * Admin-side update: moves an order to a new phase and/or revises the
+ * estimated time. Stamps status_updated_at so the tracker can show
+ * "updated 2 min ago" if needed later.
+ */
+export async function updateOrderStatus(id, { phase, estimatedMinutes } = {}) {
+  const updates = { status_updated_at: new Date().toISOString() };
+  if (phase) updates.phase = phase;
+  if (estimatedMinutes !== undefined && estimatedMinutes !== null && estimatedMinutes !== "") {
+    updates.estimatedMinutes = Number(estimatedMinutes);
+  }
+  await updateDoc(doc(db, ORDERS_COLLECTION, id), updates);
 }

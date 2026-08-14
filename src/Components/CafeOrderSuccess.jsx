@@ -5,7 +5,7 @@ import "./CafeOrderSuccess.css";
 
 const confettiColors = ["#f4b740", "#0f5132", "#2ecc71", "#1b6b47", "#c8931f"];
 
-function CafeOrderSuccess({ open, onClose, count, total }) {
+function CafeOrderSuccess({ open, onClose, count, total, token }) {
   return (
     <Modal open={open} onClose={onClose}>
       <div className="cafe-success">
@@ -29,11 +29,19 @@ function CafeOrderSuccess({ open, onClose, count, total }) {
 
         <h2 className="cafe-success-title">Order Placed</h2>
 
+        {token && (
+          <div className="cafe-success-token">
+            <span>Your Token</span>
+            <strong>#{token}</strong>
+          </div>
+        )}
+
         <div className="cafe-success-details">
           <p className="cafe-success-line">
             {count} item{count > 1 ? "s" : ""} · ₹{total}
           </p>
-          <p className="cafe-success-sub">Ready for pickup in ~10 minutes</p>
+          <p className="cafe-success-sub">Ready for pickup in ~10 minutes · track live progress on the Cafe page</p>
+          <p className="cafe-success-sub">An admin will confirm your payment shortly.</p>
         </div>
 
         <Button className="cafe-success-btn" onClick={onClose}>

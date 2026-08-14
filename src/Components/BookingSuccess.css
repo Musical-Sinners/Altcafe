@@ -63,6 +63,12 @@
   font-size: 15px;
 }
 
+.booking-success-note {
+  color: var(--color-subtext);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+
 .booking-success-turf {
   color: var(--color-subtext);
   font-size: 13.5px;

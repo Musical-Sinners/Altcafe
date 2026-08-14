@@ -51,6 +51,27 @@
   margin-bottom: 14px;
 }
 
+.cafe-success-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.cafe-success-token span {
+  font-size: var(--fs-micro);
+  color: var(--color-subtext);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cafe-success-token strong {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--color-accent);
+}
+
 .cafe-success-details {
   background: var(--color-bg);
   border-radius: var(--radius-sm);

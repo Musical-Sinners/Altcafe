@@ -2,14 +2,14 @@
 // since bookings are their own concern (used by the Booking page and by
 // the Admin > Bookings page).
 
-import { collection, doc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, where, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import { recordAdminActivity } from "./adminActivity";
 
 export const BOOKING_TURFS = [
-  { id: "a", name: "Turf A", location: "Savar" },
-  { id: "b", name: "Turf B", location: "Savar" },
-  { id: "c", name: "Turf C", location: "Dhanmondi" },
+  { id: "a", name: "Turf A", location: "Kolkata" },
+  { id: "b", name: "Turf B", location: "Kolkata" },
+  { id: "c", name: "Turf C", location: "Kolkata" },
 ];
 
 export const BOOKING_TIME_SLOTS = ["4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"];
@@ -99,9 +99,25 @@ export function getDefaultSlotMap() {
   }, {});
 }
 
-export function listenToBookingsSnapshot(callback) {
-  return onSnapshot(query(collection(db, "bookings"), orderBy("created_at", "desc")), (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+export function listenToBookingsSnapshot(callback, onError) {
+  return onSnapshot(
+    query(collection(db, "bookings"), orderBy("created_at", "desc")),
+    (snap) => {
+      callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    },
+    onError
+  );
+}
+/**
+ * Live-subscribes to a single user's own turf bookings (all statuses,
+ * most recent first) — used by the History page's "Turf" tab.
+ */
+export function listenToUserBookings(uid, callback) {
+  return onSnapshot(query(collection(db, "bookings"), where("uid", "==", uid)), (snap) => {
+    const bookings = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    callback(bookings);
   });
 }
 
@@ -153,11 +169,19 @@ export async function saveSlotConfig({ turfId, day, slots }) {
 }
 
 /**
- * Saves a confirmed booking. We store the user's name/contact directly on
- * the booking doc (denormalized) so the Admin panel can list bookings
- * without doing a separate lookup per row for every user.
+ * Saves a booking. A booking is never written as "confirmed" straight
+ * away — both payment methods land as "pending" (shown yellow in the UI)
+ * and only an admin can move it to "confirmed":
+ *   - cash: the slot is held immediately, but the admin still has to
+ *     confirm it once the customer actually pays at the counter.
+ *   - qr: the customer already typed in a transaction ID (required —
+ *     see PaymentMethodModal), and the admin confirms after checking it
+ *     against the actual payment received.
+ * We store the user's name/contact directly on the booking doc
+ * (denormalized) so the Admin panel can list bookings without doing a
+ * separate lookup per row for every user.
  */
-export async function createBooking(uid, { turfId, turf, location, day, time, price, userName, userContact, paymentMethod }) {
+export async function createBooking(uid, { turfId, turf, location, day, time, price, walletCreditApplied, userName, userContact, paymentMethod, transactionId }) {
   const bookingId = getBookingDocId({ turfId, day, time });
   const bookingRef = doc(db, "bookings", bookingId);
   const slotConfigRef = doc(db, "booking_slots", getBookingSlotConfigId({ turfId, day }));
@@ -184,20 +208,22 @@ export async function createBooking(uid, { turfId, turf, location, day, time, pr
       day,
       time,
       price,
+      walletCreditApplied: walletCreditApplied || 0,
       userName: userName || "",
       userContact: userContact || "",
-      status: "confirmed",
+      status: "pending",
       paymentMethod: paymentMethod || "cash",
+      transactionId: paymentMethod === "qr" ? transactionId || "" : "",
       created_at: new Date().toISOString(),
     });
 
     logPayload = {
       action: "booking-created",
       title: "New booking",
-      detail: `${userName || userContact || uid} booked ${turf} on ${formatBookingDate(day)} at ${time} (${paymentMethod || "cash"})`,
+      detail: `${userName || userContact || uid} booked ${turf} on ${formatBookingDate(day)} at ${time} (${paymentMethod || "cash"}) — pending confirmation`,
       targetType: "booking",
       targetId: bookingId,
-      meta: { uid, turfId, turf, location, day, time, price, userName, userContact, paymentMethod: paymentMethod || "cash" },
+      meta: { uid, turfId, turf, location, day, time, price, userName, userContact, paymentMethod: paymentMethod || "cash", transactionId: transactionId || "" },
     };
 
     return bookingId;
@@ -208,6 +234,45 @@ export async function createBooking(uid, { turfId, turf, location, day, time, pr
   }
 
   return result;
+}
+
+/**
+ * Admin-only action: moves a pending booking to "confirmed". There is no
+ * equivalent user-facing function — customers can never confirm their own
+ * booking, cash or QR.
+ */
+export async function confirmBooking(bookingId) {
+  const bookingRef = doc(db, "bookings", bookingId);
+  let logPayload = null;
+
+  await runTransaction(db, async (transaction) => {
+    const bookingSnap = await transaction.get(bookingRef);
+    if (!bookingSnap.exists()) {
+      throw new Error("booking-not-found");
+    }
+    const booking = bookingSnap.data();
+    if (booking.status === "canceled") {
+      throw new Error("booking-canceled");
+    }
+
+    transaction.update(bookingRef, {
+      status: "confirmed",
+      confirmed_at: new Date().toISOString(),
+    });
+
+    logPayload = {
+      action: "booking-confirmed",
+      title: "Booking confirmed",
+      detail: `${booking.userName || booking.userContact || booking.uid} · ${booking.turf} on ${formatBookingDate(booking.day)} at ${booking.time} (${booking.paymentMethod || "cash"})`,
+      targetType: "booking",
+      targetId: bookingId,
+      meta: { paymentMethod: booking.paymentMethod || "cash", transactionId: booking.transactionId || "" },
+    };
+  });
+
+  if (logPayload) {
+    await recordAdminActivity(logPayload);
+  }
 }
 
 export async function cancelBooking({ bookingId, turfId, day, time, canceledBy = "admin" }) {
@@ -281,4 +346,85 @@ export async function cancelBooking({ bookingId, turfId, day, time, canceledBy =
 export async function getAllBookings() {
   const snap = await getDocs(query(collection(db, "bookings"), orderBy("created_at", "desc")));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Admin-only: permanently deletes a single booking doc (used for
+ * clearing out canceled bookings once they're no longer needed).
+ */
+export async function deleteBooking(bookingId) {
+  await deleteDoc(doc(db, "bookings", bookingId));
+}
+
+/**
+ * Admin-only: permanently deletes every canceled booking at once — used
+ * by the "Clear Cancelled" button so old canceled entries don't pile up
+ * before going live.
+ */
+export async function deleteAllCanceledBookings() {
+  const snap = await getDocs(query(collection(db, "bookings"), where("status", "==", "canceled")));
+  if (snap.empty) return;
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
+// --- Turf photos --------------------------------------------------------
+// BOOKING_TURFS (name/location) stays hardcoded above, but each turf's
+// photos are admin-editable, so they're stored separately in Firestore
+// keyed by turf id — a turf can have multiple photos, which the Booking
+// page auto-rotates every few seconds.
+
+const TURF_META_COLLECTION = "turf_meta";
+
+/**
+ * Live-subscribes to every turf's saved photos. Returns a plain object
+ * { [turfId]: string[] } so callers can just do turfPhotos[turf.id].
+ * Reads the old single-`photo` field too, for docs saved before this
+ * became a list, so nothing already uploaded gets lost.
+ */
+export function listenToTurfPhotos(callback) {
+  return onSnapshot(collection(db, TURF_META_COLLECTION), (snap) => {
+    const photos = {};
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      if (Array.isArray(data.photos) && data.photos.length) {
+        photos[d.id] = data.photos;
+      } else if (data.photo) {
+        photos[d.id] = [data.photo];
+      } else {
+        photos[d.id] = [];
+      }
+    });
+    callback(photos);
+  });
+}
+
+/**
+ * Admin-only: adds one more photo to a turf's gallery (already uploaded
+ * via uploadMenuItemImage, which is generic despite the name).
+ */
+export async function addTurfPhoto(turfId, photoUrl) {
+  await setDoc(
+    doc(db, TURF_META_COLLECTION, turfId),
+    {
+      photos: arrayUnion(photoUrl),
+      updated_at: new Date().toISOString(),
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Admin-only: removes a single photo from a turf's gallery.
+ */
+export async function removeTurfPhoto(turfId, photoUrl) {
+  await setDoc(
+    doc(db, TURF_META_COLLECTION, turfId),
+    {
+      photos: arrayRemove(photoUrl),
+      updated_at: new Date().toISOString(),
+    },
+    { merge: true }
+  );
 }

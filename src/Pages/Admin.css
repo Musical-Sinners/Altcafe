@@ -64,25 +64,52 @@
 
 .admin-users-card h2 { margin-bottom: 16px; font-size: 17px; }
 
+.admin-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .admin-users-table {
   width: 100%;
+  min-width: 920px;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .admin-users-table th {
   text-align: left;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-subtext);
-  padding-bottom: 10px;
+  white-space: nowrap;
+  padding: 0 16px 10px 0;
   border-bottom: 1px solid var(--color-line);
 }
 
 .admin-users-table td {
-  padding: 12px 0;
+  padding: 13px 16px 13px 0;
   border-bottom: 1px solid var(--color-line);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-users-table th:last-child,
+.admin-users-table td:last-child {
+  padding-right: 0;
+}
+
+.admin-users-table td.admin-cell-wrap {
+  white-space: normal;
+  max-width: 220px;
+}
+
+.admin-users-table td.admin-cell-actions {
+  white-space: nowrap;
+}
+
+.admin-users-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 4%, transparent);
 }
 
 .admin-booking-status {
@@ -98,6 +125,11 @@
 .admin-booking-status.confirmed {
   background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
+}
+
+.admin-booking-status.pending {
+  background: rgba(234, 179, 8, 0.14);
+  color: #b45309;
 }
 
 .admin-booking-status.canceled {
@@ -142,6 +174,43 @@
 .admin-order-status.done {
   background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
+}
+
+.admin-order-status.cancelled {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--color-danger);
+}
+
+.admin-order-token {
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+
+.admin-order-phase-select {
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.admin-order-eta-input {
+  width: 60px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+
+.admin-order-eta-input:disabled,
+.admin-order-phase-select:disabled {
+  opacity: 0.5;
 }
 
 .admin-users-table tr:last-child td { border-bottom: none; }
@@ -504,10 +573,75 @@
   .admin-slot-grid { grid-template-columns: 1fr; }
 }
 
+.admin-turf-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.admin-turf-photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.admin-turf-photo-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 60px;
+}
+
+.admin-turf-photo-thumb {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.admin-turf-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-turf-photo-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.admin-turf-photo-thumb:hover .admin-turf-photo-remove { opacity: 1; }
+
+.admin-turf-photo-empty {
+  display: flex;
+  align-items: center;
+  color: var(--color-subtext);
+  font-size: 12.5px;
+}
+
 .admin-calendar-card {
   padding: 12px;
   box-shadow: none;
   margin-top: 8px;
+  max-width: 360px;
 }
 
 .calendar-card {

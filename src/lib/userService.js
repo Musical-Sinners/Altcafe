@@ -220,6 +220,20 @@ export async function addWalletTransaction(uid, { label, amount }) {
 }
 
 /**
+ * Actually spends wallet credit (referral rewards) on a turf booking or
+ * cafe order — the only two things it can ever be used for. It can never
+ * be withdrawn/cashed out; there is no function anywhere that pays it out
+ * to a bank account or reduces it for any reason other than this.
+ * Decrements the real wallet_balance (unlike addWalletTransaction alone,
+ * which only writes a history row) and logs the spend in the same entry.
+ */
+export async function applyWalletCredit(uid, amount, label) {
+  if (!amount || amount <= 0) return;
+  await updateDoc(doc(db, "users", uid), { wallet_balance: increment(-amount) });
+  await addWalletTransaction(uid, { label, amount: -amount });
+}
+
+/**
  * Fetches a user's wallet transaction history, most recent first.
  */
 export async function getWalletTransactions(uid) {

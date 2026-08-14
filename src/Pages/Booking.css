@@ -15,21 +15,24 @@
 .booking-section h2 { margin-bottom: 12px; }
 
 .turf-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
 }
 
 .turf-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
   width: 100%;
-  text-align: left;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: center;
   border: 2px solid transparent;
   background: var(--color-card);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  overflow: hidden;
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: border-color 0.15s ease, transform 0.15s var(--ease-out);
@@ -39,27 +42,72 @@
 .turf-card.selected { border-color: var(--color-primary); }
 .turf-card.disabled { opacity: 0.55; cursor: not-allowed; }
 
-.turf-card-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: #eaf3ee;
+.turf-card-photo {
+  position: relative;
+  width: 100%;
+  height: 130px;
+  background: linear-gradient(155deg, var(--color-card), var(--color-bg));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  color: var(--color-subtext);
   flex-shrink: 0;
 }
 
-.turf-card-body { flex: 1; }
-.turf-card-name { font-weight: 600; font-size: 15px; }
+.turf-card-photo svg { opacity: 0.5; width: 36px; height: 36px; }
+
+.turf-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.4s ease;
+}
+
+.turf-card-photo-dots {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.turf-card-photo-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.turf-card-photo-dots span.active {
+  background: #fff;
+}
+
+.turf-card-body {
+  padding: 12px 10px 14px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.turf-card-name {
+  font-weight: 700;
+  font-size: 15.5px;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 .turf-card-meta {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--color-subtext);
-  margin-top: 2px;
+  margin-top: 5px;
 }
 
 .turf-card-status {

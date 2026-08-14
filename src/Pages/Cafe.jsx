@@ -4,10 +4,12 @@ import Modal from "../components/Modal";
 import Button from "../components/Button";
 import CafeOrderSuccess from "../components/CafeOrderSuccess";
 import PaymentMethodModal from "../components/PaymentMethodModal";
+import LocationModal from "../components/LocationModal";
+import WalletCreditPrompt from "../components/WalletCreditPrompt";
 import Skeleton from "../components/Skeleton";
 import { useToast } from "../contexts/ToastContext";
 import { auth } from "../firebase";
-import { addWalletTransaction, getUserProfile } from "../lib/userService";
+import { addWalletTransaction, applyWalletCredit, getUserProfile } from "../lib/userService";
 import { CAFE_CATEGORIES, createOrder, ensureMenuSeeded, listenToMenu } from "../lib/cafeService";
 import "./Cafe.css";
 
@@ -26,6 +28,12 @@ function Cafe() {
   const [lastOrder, setLastOrder] = useState(null);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [orderLocation, setOrderLocation] = useState(null); // { type: "table"|"standing"|"turf", table: number|null }
+  const [pendingProfile, setPendingProfile] = useState(null);
+  const [walletPromptOpen, setWalletPromptOpen] = useState(false);
+  const [walletCreditApplied, setWalletCreditApplied] = useState(0);
+  const [walletChoiceLoading, setWalletChoiceLoading] = useState(false);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -68,18 +76,53 @@ function Cafe() {
     });
   };
 
-  // Opens the cart → payment-method step, doesn't place the order yet.
-  const handleGoToPayment = () => {
+  // Opens the cart → location step, doesn't place the order yet.
+  const handleGoToPayment = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       showToast("Please log in again to order.", "error");
       return;
     }
+    const profile = await getUserProfile(currentUser.uid);
+    setPendingProfile(profile);
     setCartOpen(false);
+    setLocationModalOpen(true);
+  };
+
+  // Location chosen → ask about wallet credit first if they have any,
+  // otherwise go straight to the payment-method step.
+  const handleLocationContinue = (location) => {
+    setOrderLocation(location);
+    setLocationModalOpen(false);
+    setWalletCreditApplied(0);
+    setWalletPromptOpen(true);
+  };
+
+  const handleUseWalletCredit = async () => {
+    const applied = Math.min(pendingProfile?.wallet_balance || 0, totalPrice);
+    setWalletCreditApplied(applied);
+    setWalletPromptOpen(false);
+
+    if (applied >= totalPrice) {
+      // Wallet fully covers it — no cash/QR step needed at all.
+      setWalletChoiceLoading(true);
+      try {
+        await handlePlaceOrder("wallet", "", applied);
+      } finally {
+        setWalletChoiceLoading(false);
+      }
+    } else {
+      setPaymentModalOpen(true);
+    }
+  };
+
+  const handleSkipWalletCredit = () => {
+    setWalletCreditApplied(0);
+    setWalletPromptOpen(false);
     setPaymentModalOpen(true);
   };
 
-  const handlePlaceOrder = async (paymentMethod) => {
+  const handlePlaceOrder = async (paymentMethod, transactionId, creditApplied = walletCreditApplied) => {
     const currentUser = auth.currentUser;
     if (!currentUser) {
       showToast("Please log in again to order.", "error");
@@ -88,28 +131,40 @@ function Cafe() {
 
     setPlacingOrder(true);
     try {
-      const profile = await getUserProfile(currentUser.uid);
+      const profile = pendingProfile || (await getUserProfile(currentUser.uid));
       const itemsLabel = cartItems.map((item) => `${item.name} x${item.qty}`).join(", ");
       const orderItems = cartItems.map((item) => ({ name: item.name, qty: item.qty, price: item.price }));
+      const remaining = totalPrice - creditApplied;
 
-      await createOrder(currentUser.uid, {
+      const { token } = await createOrder(currentUser.uid, {
         items: orderItems,
         total: totalPrice,
+        walletCreditApplied: creditApplied,
         userName: profile?.name || "",
         userContact: profile?.phone || profile?.email || "",
-        paymentMethod,
+        paymentMethod: remaining === 0 ? "wallet" : paymentMethod,
+        transactionId,
+        location: orderLocation,
       });
 
-      await addWalletTransaction(currentUser.uid, {
-        label: `Cafe order — ${itemsLabel}`,
-        amount: -totalPrice,
-      });
+      const label = `Cafe order #${token} — ${itemsLabel}`;
 
-      setLastOrder({ count: totalItems, total: totalPrice });
+      // Wallet-credit portion actually reduces the real balance. The
+      // cash/QR portion is only logged for the Wallet/History pages.
+      if (creditApplied > 0) {
+        await applyWalletCredit(currentUser.uid, creditApplied, `${label} (wallet credit)`);
+      }
+      if (remaining > 0) {
+        await addWalletTransaction(currentUser.uid, { label, amount: -remaining });
+      }
+
+      setLastOrder({ count: totalItems, total: totalPrice, token });
       setCart({});
+      setOrderLocation(null);
+      setPendingProfile(null);
       setPaymentModalOpen(false);
       setSuccess(true);
-      showToast("Order placed");
+      showToast(`Order placed — token #${token}`);
     } catch (err) {
       console.error(err);
       showToast("Could not place order. Please try again.", "error");
@@ -154,9 +209,10 @@ function Cafe() {
 
         {menuLoading ? (
           <div className="cafe-menu-list">
-            <Skeleton height={82} />
-            <Skeleton height={82} />
-            <Skeleton height={82} />
+            <Skeleton height={220} />
+            <Skeleton height={220} />
+            <Skeleton height={220} />
+            <Skeleton height={220} />
           </div>
         ) : (
           <div className="cafe-menu-list">
@@ -323,13 +379,29 @@ function Cafe() {
         )}
       </Modal>
 
+      <LocationModal
+        open={locationModalOpen}
+        onClose={() => setLocationModalOpen(false)}
+        onContinue={handleLocationContinue}
+      />
+
       <PaymentMethodModal
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
-        amount={totalPrice}
+        amount={totalPrice - walletCreditApplied}
         label={`${totalItems} item${totalItems > 1 ? "s" : ""}`}
         confirming={placingOrder}
         onConfirm={handlePlaceOrder}
+      />
+
+      <WalletCreditPrompt
+        open={walletPromptOpen}
+        onClose={() => setWalletPromptOpen(false)}
+        balance={pendingProfile?.wallet_balance || 0}
+        total={totalPrice}
+        onUse={handleUseWalletCredit}
+        onSkip={handleSkipWalletCredit}
+        loading={walletChoiceLoading}
       />
 
       <CafeOrderSuccess
@@ -337,6 +409,7 @@ function Cafe() {
         onClose={() => setSuccess(false)}
         count={lastOrder?.count}
         total={lastOrder?.total}
+        token={lastOrder?.token}
       />
     </div>
   );

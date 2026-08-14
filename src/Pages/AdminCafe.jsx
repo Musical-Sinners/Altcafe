@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
-import { Coffee, Plus, Pencil, Trash2, ShoppingBag, EyeOff, Eye, ImagePlus, Clock, CheckCircle2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Coffee, Plus, Pencil, Trash2, ShoppingBag, EyeOff, Eye, ImagePlus, CheckCircle2, XCircle } from "lucide-react";
 import {
   CAFE_CATEGORIES,
+  ORDER_PHASES,
+  ORDER_PHASE_LABELS,
   addMenuItem,
+  confirmOrder,
+  deleteAllCancelledOrders,
+  deleteAllMenuItems,
   deleteMenuItem,
   ensureMenuSeeded,
   listenToMenu,
@@ -24,11 +29,26 @@ function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function formatLocation(location) {
+  if (!location || !location.type) return "—";
+  if (location.type === "table") return `Table ${location.table ?? "—"}`;
+  if (location.type === "standing") return "Standing";
+  if (location.type === "turf") return "Turf";
+  return "—";
+}
+
 const emptyForm = { name: "", category: CAFE_CATEGORIES[0], price: "", desc: "", icon: "", image: "" };
+
+// Orders placed before the token/phase system only have a "placed"/"done"
+// status — read those the same way the customer-facing tracker does.
+function resolvePhase(order) {
+  if (order.phase) return order.phase;
+  return order.status === "done" ? "completed" : "placed";
+}
 
 function AdminCafe() {
   const { showToast } = useToast();
-  const [tab, setTab] = useState("menu"); // "menu" | "orders"
+  const [tab, setTab] = useState("menu"); // "menu" | "orders" | "completed" | "cancelled"
 
   const [menu, setMenu] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -41,6 +61,24 @@ function AdminCafe() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState(null);
+  const [etaDrafts, setEtaDrafts] = useState({}); // orderId -> in-progress ETA input value
+  const [clearingMenu, setClearingMenu] = useState(false);
+  const [clearingCancelled, setClearingCancelled] = useState(false);
+
+  const knownOrderIds = useRef(null); // null until first snapshot, so we don't toast on page load
+
+  // Orders never get deleted — they just move between these three buckets
+  // as admin changes the phase, so all history stays visible under Complete/Cancel.
+  const activeOrders = orders.filter((o) => {
+    const phase = resolvePhase(o);
+    return phase !== "completed" && phase !== "cancelled";
+  });
+  const completedOrders = orders.filter((o) => resolvePhase(o) === "completed");
+  const cancelledOrders = orders.filter((o) => resolvePhase(o) === "cancelled");
+
+  const visibleOrders =
+    tab === "orders" ? activeOrders : tab === "completed" ? completedOrders : tab === "cancelled" ? cancelledOrders : [];
 
   useEffect(() => {
     let unsubMenu = () => {};
@@ -51,6 +89,11 @@ function AdminCafe() {
       });
     });
     const unsubOrders = listenToOrders((data) => {
+      if (knownOrderIds.current) {
+        const newOnes = data.filter((o) => !knownOrderIds.current.has(o.id));
+        newOnes.forEach((o) => showToast(`New order — token #${o.token ?? "—"}`, "info"));
+      }
+      knownOrderIds.current = new Set(data.map((o) => o.id));
       setOrders(data);
       setOrdersLoading(false);
     });
@@ -58,6 +101,7 @@ function AdminCafe() {
       unsubMenu();
       unsubOrders();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openAddForm = () => {
@@ -134,16 +178,41 @@ function AdminCafe() {
     }
   };
 
-  const handleMarkDone = async (order) => {
+  const handlePhaseChange = async (order, phase) => {
     setUpdatingOrderId(order.id);
     try {
-      await updateOrderStatus(order.id, order.status === "done" ? "placed" : "done");
-      showToast(order.status === "done" ? "Order marked as waiting" : "Order marked as done");
+      await updateOrderStatus(order.id, { phase });
+      showToast(`Order #${order.token ?? "—"} → ${ORDER_PHASE_LABELS[phase] || phase}`);
     } catch (err) {
       console.error(err);
       showToast("Could not update order status.", "error");
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const handleConfirmOrder = async (order) => {
+    setConfirmingOrderId(order.id);
+    try {
+      await confirmOrder(order.id);
+      showToast(`Order #${order.token ?? "—"} confirmed`);
+    } catch (err) {
+      console.error(err);
+      showToast("Could not confirm order.", "error");
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
+  const handleEtaCommit = async (order) => {
+    const raw = etaDrafts[order.id];
+    if (raw === undefined || raw === "" || Number(raw) === order.estimatedMinutes) return;
+    try {
+      await updateOrderStatus(order.id, { estimatedMinutes: Number(raw) });
+      showToast(`ETA updated for order #${order.token ?? "—"}`);
+    } catch (err) {
+      console.error(err);
+      showToast("Could not update ETA.", "error");
     }
   };
 
@@ -155,6 +224,34 @@ function AdminCafe() {
     } catch (err) {
       console.error(err);
       showToast("Could not remove item.", "error");
+    }
+  };
+
+  const handleClearMenu = async () => {
+    if (!window.confirm(`Delete all ${menu.length} menu items permanently? This can't be undone.`)) return;
+    setClearingMenu(true);
+    try {
+      await deleteAllMenuItems();
+      showToast("Menu cleared");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not clear menu.", "error");
+    } finally {
+      setClearingMenu(false);
+    }
+  };
+
+  const handleClearCancelledOrders = async () => {
+    if (!window.confirm(`Permanently delete all ${cancelledOrders.length} cancelled orders?`)) return;
+    setClearingCancelled(true);
+    try {
+      await deleteAllCancelledOrders();
+      showToast("Cancelled orders cleared");
+    } catch (err) {
+      console.error(err);
+      showToast("Could not clear cancelled orders.", "error");
+    } finally {
+      setClearingCancelled(false);
     }
   };
 
@@ -175,7 +272,21 @@ function AdminCafe() {
           className={`admin-cafe-tab ${tab === "orders" ? "active" : ""}`}
           onClick={() => setTab("orders")}
         >
-          <ShoppingBag size={15} strokeWidth={2.2} /> Orders ({orders.length})
+          <ShoppingBag size={15} strokeWidth={2.2} /> Orders ({activeOrders.length})
+        </button>
+        <button
+          type="button"
+          className={`admin-cafe-tab ${tab === "completed" ? "active" : ""}`}
+          onClick={() => setTab("completed")}
+        >
+          <CheckCircle2 size={15} strokeWidth={2.2} /> Complete ({completedOrders.length})
+        </button>
+        <button
+          type="button"
+          className={`admin-cafe-tab ${tab === "cancelled" ? "active" : ""}`}
+          onClick={() => setTab("cancelled")}
+        >
+          <XCircle size={15} strokeWidth={2.2} /> Cancel ({cancelledOrders.length})
         </button>
       </div>
 
@@ -185,9 +296,16 @@ function AdminCafe() {
             <p style={{ color: "var(--color-subtext)", fontSize: 13.5 }}>
               {menu.length} item{menu.length === 1 ? "" : "s"} on the menu
             </p>
-            <Button icon={Plus} size="sm" onClick={openAddForm}>
-              Add Item
-            </Button>
+            <div style={{ display: "flex", gap: 8 }}>
+              {menu.length > 0 && (
+                <Button icon={Trash2} size="sm" variant="danger" loading={clearingMenu} onClick={handleClearMenu}>
+                  Clear All
+                </Button>
+              )}
+              <Button icon={Plus} size="sm" onClick={openAddForm}>
+                Add Item
+              </Button>
+            </div>
           </div>
 
           {menuLoading ? (
@@ -235,63 +353,127 @@ function AdminCafe() {
         </>
       ) : (
         <div className="admin-users-card surface-card">
-          <h2>All Orders ({orders.length})</h2>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <h2>
+              {tab === "orders" ? "Active Orders" : tab === "completed" ? "Completed Orders" : "Cancelled Orders"} (
+              {visibleOrders.length})
+            </h2>
+            {tab === "cancelled" && cancelledOrders.length > 0 && (
+              <Button
+                size="sm"
+                variant="danger"
+                icon={Trash2}
+                loading={clearingCancelled}
+                onClick={handleClearCancelledOrders}
+              >
+                Clear Cancelled
+              </Button>
+            )}
+          </div>
+
           {ordersLoading ? (
             <Skeleton height={200} />
-          ) : orders.length === 0 ? (
+          ) : visibleOrders.length === 0 ? (
             <div className="admin-empty-state">
               <ShoppingBag size={26} strokeWidth={1.8} />
-              <p>No orders yet</p>
-              <span>Orders placed from the Cafe page will show up here.</span>
+              <p>{tab === "orders" ? "No active orders" : "Nothing here yet"}</p>
+              <span>
+                {tab === "orders"
+                  ? "New orders from the Cafe page will show up here."
+                  : tab === "completed"
+                  ? "Orders marked Completed will show up here."
+                  : "Orders marked Cancelled will show up here."}
+              </span>
             </div>
           ) : (
+            <div className="admin-table-scroll">
             <table className="admin-users-table">
               <thead>
                 <tr>
+                  <th>Token</th>
                   <th>Customer</th>
                   <th>Items</th>
                   <th>Total</th>
+                  <th>Location</th>
                   <th>Payment</th>
-                  <th>Placed</th>
+                  <th>Txn ID</th>
                   <th>Status</th>
+                  <th>Placed</th>
+                  <th>Phase</th>
+                  <th>ETA (min)</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => {
-                  const isDone = order.status === "done";
+                {visibleOrders.map((order) => {
+                  const phase = resolvePhase(order);
+                  const cancelled = phase === "cancelled";
+                  const completed = phase === "completed";
+                  const orderStatus = order.status || "pending";
                   return (
                     <tr key={order.id}>
+                      <td>
+                        <strong className="admin-order-token">#{order.token ?? "—"}</strong>
+                      </td>
                       <td>{order.userName || order.userContact || "—"}</td>
-                      <td>{(order.items || []).map((i) => `${i.name} x${i.qty}`).join(", ")}</td>
+                      <td className="admin-cell-wrap" title={(order.items || []).map((i) => `${i.name} x${i.qty}`).join(", ")}>
+                        {(order.items || []).map((i) => `${i.name} x${i.qty}`).join(", ")}
+                      </td>
                       <td>₹{order.total}</td>
+                      <td>{formatLocation(order.location)}</td>
                       <td>
                         <span className={`admin-payment-pill ${order.paymentMethod === "qr" ? "qr" : "cash"}`}>
                           {order.paymentMethod === "qr" ? "QR" : "Cash"}
                         </span>
                       </td>
-                      <td>{formatDate(order.created_at)}</td>
-                      <td>
-                        <span className={`admin-order-status ${isDone ? "done" : "waiting"}`}>
-                          {isDone ? <CheckCircle2 size={13} strokeWidth={2.2} /> : <Clock size={13} strokeWidth={2.2} />}
-                          {isDone ? "Done" : "Waiting"}
-                        </span>
+                      <td className="admin-cell-wrap" title={order.paymentMethod === "qr" ? order.transactionId || "" : ""}>
+                        {order.paymentMethod === "qr" ? (order.transactionId || "—") : "—"}
                       </td>
                       <td>
-                        <Button
-                          size="sm"
-                          variant={isDone ? "ghost" : "primary"}
-                          onClick={() => handleMarkDone(order)}
-                          loading={updatingOrderId === order.id}
+                        <span className={`admin-booking-status ${orderStatus}`}>{orderStatus}</span>
+                      </td>
+                      <td>{formatDate(order.created_at)}</td>
+                      <td>
+                        <select
+                          className="admin-order-phase-select"
+                          value={phase}
+                          disabled={updatingOrderId === order.id}
+                          onChange={(e) => handlePhaseChange(order, e.target.value)}
                         >
-                          {isDone ? "Mark Waiting" : "Mark Done"}
-                        </Button>
+                          {ORDER_PHASES.map((p) => (
+                            <option key={p} value={p}>{ORDER_PHASE_LABELS[p]}</option>
+                          ))}
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          className="admin-order-eta-input"
+                          disabled={completed || cancelled}
+                          value={etaDrafts[order.id] ?? order.estimatedMinutes ?? ""}
+                          onChange={(e) => setEtaDrafts((d) => ({ ...d, [order.id]: e.target.value }))}
+                          onBlur={() => handleEtaCommit(order)}
+                        />
+                      </td>
+                      <td className="admin-cell-actions">
+                        {orderStatus === "pending" && (
+                          <Button
+                            size="sm"
+                            loading={confirmingOrderId === order.id}
+                            onClick={() => handleConfirmOrder(order)}
+                          >
+                            Confirm
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       )}

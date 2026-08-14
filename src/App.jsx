@@ -9,6 +9,7 @@ import Wallet from "./pages/Wallet";
 import HistoryPage from "./pages/History";
 import Cafe from "./pages/Cafe";
 import Profile from "./pages/Profile";
+import Reviews from "./pages/Reviews";
 import AboutUs from "./pages/AboutUs";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
@@ -16,6 +17,7 @@ import AdminBookings from "./pages/AdminBookings";
 import AdminCafe from "./pages/AdminCafe";
 import AdminWallet from "./pages/AdminWallet";
 import AdminRewards from "./pages/AdminRewards";
+import AdminReviews from "./pages/AdminReviews";
 import AdminSettings from "./pages/AdminSettings";
 import "./styles/theme.css";
 
@@ -35,6 +37,7 @@ function App() {
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/cafe" element={<Cafe />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/reviews" element={<Reviews />} />
             <Route path="/about-us" element={<AboutUs />} />
           </Route>
 
@@ -47,6 +50,7 @@ function App() {
             <Route path="cafe" element={<AdminCafe />} />
             <Route path="wallet" element={<AdminWallet />} />
             <Route path="rewards" element={<AdminRewards />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
 

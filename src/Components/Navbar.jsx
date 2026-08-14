@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, CalendarDays, Coffee, Wallet, History, User } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Coffee, Wallet, History, Star, User } from "lucide-react";
 import "./Navbar.css";
 
 const links = [
@@ -8,6 +8,7 @@ const links = [
   { to: "/cafe", label: "Cafe", icon: Coffee },
   { to: "/wallet", label: "Wallet", icon: Wallet },
   { to: "/history", label: "History", icon: History },
+  { to: "/reviews", label: "Reviews", icon: Star },
   { to: "/profile", label: "Profile", icon: User },
 ];
 

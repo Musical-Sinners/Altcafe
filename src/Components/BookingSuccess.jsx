@@ -27,12 +27,16 @@ function BookingSuccess({ open, onClose, turf, day, time }) {
           <CheckCircle2 size={40} strokeWidth={2.2} />
         </div>
 
-        <h2 className="booking-success-title">Booking Confirmed</h2>
+        <h2 className="booking-success-title">Booking Placed</h2>
 
         <div className="booking-success-details">
           <p className="booking-success-day">{day}, {time}</p>
           <p className="booking-success-turf">{turf}</p>
         </div>
+
+        <p className="booking-success-note">
+          Your slot is held. An admin will confirm your booking shortly.
+        </p>
 
         <Button className="booking-success-btn" onClick={onClose}>
           Done
