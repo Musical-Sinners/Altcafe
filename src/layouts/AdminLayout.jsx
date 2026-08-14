@@ -7,7 +7,7 @@ import { canAccessAdmin } from "../lib/adminConfig";
 import { useToast } from "../contexts/ToastContext";
 import AdminSidebar from "../Components/AdminSidebar";
 import Skeleton from "../Components/Skeleton";
-import "../pages/Admin.css";
+import "../Pages/Admin.css";
 
 /**
  * Shared shell for every /admin/* page: sidebar + the "are you actually
