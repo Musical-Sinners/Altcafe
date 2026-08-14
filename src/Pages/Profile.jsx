@@ -20,9 +20,9 @@ import {
 } from "lucide-react";
 import { auth } from "../firebase";
 import { getUserProfile, updateUserProfile, deleteUserProfile } from "../lib/userService";
-import Button from "../components/Button";
-import Modal from "../components/Modal";
-import Skeleton from "../components/Skeleton";
+import Button from "../Components/Button";
+import Modal from "../Components/Modal";
+import Skeleton from "../Components/Skeleton";
 import { useToast } from "../contexts/ToastContext";
 import "./Profile.css";
 

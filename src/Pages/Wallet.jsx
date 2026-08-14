@@ -3,8 +3,8 @@ import { ArrowDownToLine, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { auth } from "../firebase";
 import { getUserProfile, getWalletTransactions } from "../lib/userService";
 import { useToast } from "../contexts/ToastContext";
-import Button from "../components/Button";
-import Skeleton from "../components/Skeleton";
+import Button from "../Components/Button";
+import Skeleton from "../Components/Skeleton";
 import "./Wallet.css";
 
 function formatDate(isoString) {

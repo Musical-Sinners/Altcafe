@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Coffee, MessageSquareText, Star, Trash2, Volleyball } from "lucide-react";
 import { deleteReview, listenToAllReviews } from "../lib/reviewService";
-import Skeleton from "../components/Skeleton";
+import Skeleton from "../Components/Skeleton";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 

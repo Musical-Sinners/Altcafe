@@ -20,11 +20,11 @@ import {
 } from "../lib/bookingService";
 import { COUNTRY_CODES, getCountryConfig } from "../lib/countryCodes";
 import { useToast } from "../contexts/ToastContext";
-import Button from "../components/Button";
-import Modal from "../components/Modal";
-import BookingSuccess from "../components/BookingSuccess";
-import PaymentMethodModal from "../components/PaymentMethodModal";
-import WalletCreditPrompt from "../components/WalletCreditPrompt";
+import Button from "../Components/Button";
+import Modal from "../Components/Modal";
+import BookingSuccess from "../Components/BookingSuccess";
+import PaymentMethodModal from "../Components/PaymentMethodModal";
+import WalletCreditPrompt from "../Components/WalletCreditPrompt";
 import "./Booking.css";
 import "./Login.css"; // reuses the phone-row / country-select input styles
 

@@ -20,8 +20,8 @@ import {
   startOfMonth,
 } from "../lib/bookingService";
 import { uploadMenuItemImage } from "../lib/cafeService"; // generic imgbb upload, reused here for turf photos
-import Skeleton from "../components/Skeleton";
-import Button from "../components/Button";
+import Skeleton from "../Components/Skeleton";
+import Button from "../Components/Button";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 import "./AdminCafe.css"; // reuses .admin-cafe-upload-btn for the turf photo uploader

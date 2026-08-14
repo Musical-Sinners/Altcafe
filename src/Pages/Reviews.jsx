@@ -4,8 +4,8 @@ import { auth } from "../firebase";
 import { getUserProfile } from "../lib/userService";
 import { getOwnReview, listenToReviews, submitReview } from "../lib/reviewService";
 import { useToast } from "../contexts/ToastContext";
-import Button from "../components/Button";
-import Skeleton from "../components/Skeleton";
+import Button from "../Components/Button";
+import Skeleton from "../Components/Skeleton";
 import "./Reviews.css";
 
 const TABS = [

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Info, Mail, Phone, MapPin, Save } from "lucide-react";
 import { DEFAULT_ABOUT_CONTACT, listenToAboutContact, updateAboutContact } from "../lib/aboutConfig";
-import Button from "../components/Button";
+import Button from "../Components/Button";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 

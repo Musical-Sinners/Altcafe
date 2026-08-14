@@ -4,8 +4,8 @@ import { auth } from "../firebase";
 import { getWalletTransactions } from "../lib/userService";
 import { listenToUserOrders } from "../lib/cafeService";
 import { listenToUserBookings, formatBookingDate } from "../lib/bookingService";
-import Skeleton from "../components/Skeleton";
-import OrderTracker from "../components/OrderTracker";
+import Skeleton from "../Components/Skeleton";
+import OrderTracker from "../Components/OrderTracker";
 import "./History.css";
 
 function formatDate(isoString) {

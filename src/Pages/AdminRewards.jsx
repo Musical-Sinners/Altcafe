@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { getAllUsers, REFERRAL_REWARD, NEW_USER_DISCOUNT, MAX_WALLET_REWARD } from "../lib/userService";
-import AdminStatCard from "../components/AdminStatCard";
-import Skeleton from "../components/Skeleton";
+import AdminStatCard from "../Components/AdminStatCard";
+import Skeleton from "../Components/Skeleton";
 import "./Admin.css";
 
 function AdminRewards() {

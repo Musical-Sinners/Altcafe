@@ -5,8 +5,8 @@ import { LogOut } from "lucide-react";
 import { auth } from "../firebase";
 import { canAccessAdmin } from "../lib/adminConfig";
 import { useToast } from "../contexts/ToastContext";
-import AdminSidebar from "../components/AdminSidebar";
-import Skeleton from "../components/Skeleton";
+import AdminSidebar from "../Components/AdminSidebar";
+import Skeleton from "../Components/Skeleton";
 import "../pages/Admin.css";
 
 /**

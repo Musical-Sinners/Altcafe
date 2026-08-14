@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Volleyball, UserPlus, History, Wallet } from "lucide-react";
 import { auth } from "../firebase";
 import { getUserProfile } from "../lib/userService";
-import WalletCard from "../components/WalletCard";
-import ReferralCard from "../components/ReferralCard";
-import StatCard from "../components/StatCard";
-import Skeleton from "../components/Skeleton";
+import WalletCard from "../Components/WalletCard";
+import ReferralCard from "../Components/ReferralCard";
+import StatCard from "../Components/StatCard";
+import Skeleton from "../Components/Skeleton";
 import "./Dashboard.css";
 
 function getGreeting() {

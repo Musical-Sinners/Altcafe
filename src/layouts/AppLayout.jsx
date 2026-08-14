@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
-import OrderNotifier from "../components/OrderNotifier";
+import Navbar from "../Components/Navbar";
+import BottomNav from "../Components/BottomNav";
+import OrderNotifier from "../Components/OrderNotifier";
 
 function AppLayout() {
   return (

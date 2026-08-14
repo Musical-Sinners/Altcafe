@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Trash2, UserX } from "lucide-react";
 import { deleteUserProfile, getAllUsers } from "../lib/userService";
-import Skeleton from "../components/Skeleton";
-import Button from "../components/Button";
+import Skeleton from "../Components/Skeleton";
+import Button from "../Components/Button";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 

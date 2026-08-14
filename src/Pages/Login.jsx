@@ -21,7 +21,7 @@ import { canAccessAdmin } from "../lib/adminConfig";
 import { COUNTRY_CODES, getCountryConfig } from "../lib/countryCodes";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Volleyball, Gift, Coffee, Mail, Link2 } from "lucide-react";
-import Button from "../components/Button";
+import Button from "../Components/Button";
 import "./Login.css";
 
 // Phone numbers can't have a "password" in Firebase natively — Firebase

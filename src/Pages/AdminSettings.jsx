@@ -17,7 +17,7 @@ import {
 import { BOOKING_PRICE, listenToBookingPrice, updateBookingPrice } from "../lib/bookingService";
 import { auth } from "../firebase";
 import { REFERRAL_REWARD, NEW_USER_DISCOUNT, MAX_WALLET_REWARD } from "../lib/userService";
-import Button from "../components/Button";
+import Button from "../Components/Button";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 

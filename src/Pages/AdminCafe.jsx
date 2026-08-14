@@ -17,9 +17,9 @@ import {
   updateOrderStatus,
   uploadMenuItemImage,
 } from "../lib/cafeService";
-import Modal from "../components/Modal";
-import Button from "../components/Button";
-import Skeleton from "../components/Skeleton";
+import Modal from "../Components/Modal";
+import Button from "../Components/Button";
+import Skeleton from "../Components/Skeleton";
 import { useToast } from "../contexts/ToastContext";
 import "./Admin.css";
 import "./AdminCafe.css";

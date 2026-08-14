@@ -4,8 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { getAllUsers, getAllWalletTransactions } from "../lib/userService";
 import { listenToBookingsSnapshot } from "../lib/bookingService";
 import { listenToOrders } from "../lib/cafeService";
-import AdminStatCard from "../components/AdminStatCard";
-import Skeleton from "../components/Skeleton";
+import AdminStatCard from "../Components/AdminStatCard";
+import Skeleton from "../Components/Skeleton";
 import "./Admin.css";
 
 function formatDate(isoString) {

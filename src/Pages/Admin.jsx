@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Wallet, Users, Gift } from "lucide-react";
 import { getAllUsers } from "../lib/userService";
-import AdminStatCard from "../components/AdminStatCard";
-import Skeleton from "../components/Skeleton";
+import AdminStatCard from "../Components/AdminStatCard";
+import Skeleton from "../Components/Skeleton";
 import "./Admin.css";
 
 function formatDate(isoString) {
