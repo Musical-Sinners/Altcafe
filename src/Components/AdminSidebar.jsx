@@ -5,8 +5,8 @@ import "./AdminSidebar.css";
 const links = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Users", icon: Users },
-  { to: "/admin/bookings", label: "Turf", icon: CalendarDays },
-  { to: "/admin/cafe", label: "Cafe", icon: Coffee },
+  { to: "/admin/bookings", label: "Turf", icon: CalendarDays, badgeKey: "pendingBookings" },
+  { to: "/admin/cafe", label: "Cafe", icon: Coffee, badgeKey: "pendingOrders" },
   { to: "/admin/wallet", label: "Wallet", icon: Wallet },
   { to: "/admin/reviews", label: "Reviews", icon: MessageSquareText },
   { to: "/admin/rewards", label: "Rewards", icon: Gift },
@@ -14,7 +14,9 @@ const links = [
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-function AdminSidebar({ onLogout }) {
+function AdminSidebar({ onLogout, pendingOrders = 0, pendingBookings = 0 }) {
+  const badgeValues = { pendingOrders, pendingBookings };
+
   return (
     <aside className="admin-sidebar">
       <div className="admin-sidebar-topbar">
@@ -28,17 +30,21 @@ function AdminSidebar({ onLogout }) {
         </button>
       </div>
       <nav className="admin-sidebar-nav">
-        {links.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) => "admin-sidebar-link" + (isActive ? " active" : "")}
-          >
-            <Icon size={18} strokeWidth={2.1} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+        {links.map(({ to, label, icon: Icon, end, badgeKey }) => {
+          const badgeCount = badgeKey ? badgeValues[badgeKey] : 0;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => "admin-sidebar-link" + (isActive ? " active" : "")}
+            >
+              <Icon size={18} strokeWidth={2.1} />
+              <span>{label}</span>
+              {badgeCount > 0 && <span className="admin-sidebar-badge">{badgeCount}</span>}
+            </NavLink>
+          );
+        })}
       </nav>
     </aside>
   );

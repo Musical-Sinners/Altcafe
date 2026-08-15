@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, CalendarDays, Coffee, Wallet, History, Star, User } from "lucide-react";
+import { useHistoryBadge } from "../contexts/HistoryBadgeContext";
 import "./Navbar.css";
 
 const links = [
@@ -13,6 +14,8 @@ const links = [
 ];
 
 function Navbar() {
+  const { unseenCount } = useHistoryBadge();
+
   return (
     <header className="navbar">
       <div className="navbar-inner">
@@ -28,7 +31,12 @@ function Navbar() {
               to={to}
               className={({ isActive }) => "navbar-link" + (isActive ? " active" : "")}
             >
-              <Icon size={17} strokeWidth={2.2} />
+              <span className="navbar-link-icon-wrap">
+                <Icon size={17} strokeWidth={2.2} />
+                {to === "/history" && unseenCount > 0 && (
+                  <span className="navbar-badge">{unseenCount}</span>
+                )}
+              </span>
               {label}
             </NavLink>
           ))}

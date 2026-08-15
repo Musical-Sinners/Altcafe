@@ -46,6 +46,22 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.admin-sidebar-link span:first-of-type { flex: 1; }
+
+.admin-sidebar-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-danger, #e5484d);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  flex: none;
+}
+
 .admin-sidebar-link:hover { background: rgba(255, 255, 255, 0.06); color: #fff; }
 
 .admin-sidebar-link.active {

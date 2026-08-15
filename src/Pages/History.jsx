@@ -4,6 +4,7 @@ import { auth } from "../firebase";
 import { getWalletTransactions } from "../lib/userService";
 import { listenToUserOrders } from "../lib/cafeService";
 import { listenToUserBookings, formatBookingDate } from "../lib/bookingService";
+import { useHistoryBadge } from "../contexts/HistoryBadgeContext";
 import Skeleton from "../Components/Skeleton";
 import OrderTracker from "../Components/OrderTracker";
 import "./History.css";
@@ -14,6 +15,7 @@ function formatDate(isoString) {
 }
 
 function History() {
+  const { markSeen } = useHistoryBadge();
   const [tab, setTab] = useState("cafe"); // "cafe" | "turf"
 
   const [transactions, setTransactions] = useState([]);
@@ -22,6 +24,11 @@ function History() {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
+
+  useEffect(() => {
+    markSeen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const load = async () => {

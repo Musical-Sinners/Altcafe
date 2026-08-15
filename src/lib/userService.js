@@ -207,6 +207,15 @@ export async function updateUserProfile(uid, updates = {}) {
 }
 
 /**
+ * Stamps "the user has now seen their History page" so the unread-update
+ * badge (booking confirmed / cafe order phase changed) can clear. Not
+ * part of updateUserProfile's allow-list since it's not user-editable data.
+ */
+export async function markHistorySeen(uid) {
+  await updateDoc(doc(db, "users", uid), { history_last_seen_at: new Date().toISOString() });
+}
+
+/**
  * Records one row in a user's wallet transaction history (referral bonus,
  * withdrawal, order paid with wallet credit, etc). Positive amount = money
  * added, negative = money spent/withdrawn.

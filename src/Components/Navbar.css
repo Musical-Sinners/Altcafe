@@ -58,3 +58,23 @@
 @media (max-width: 900px) {
   .navbar { display: none; }
 }
+.navbar-link-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.navbar-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--color-danger, #e5484d);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}

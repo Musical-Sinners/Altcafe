@@ -4,8 +4,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
 import Navbar from "../Components/Navbar";
 import BottomNav from "../Components/BottomNav";
-import OrderNotifier from "../Components/OrderNotifier";
 import Skeleton from "../Components/Skeleton";
+import { HistoryBadgeProvider } from "../contexts/HistoryBadgeContext";
 
 /**
  * Shared shell for every logged-in-only page (dashboard, cafe, booking,
@@ -43,12 +43,13 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
-      <Navbar />
-      <OrderNotifier />
-      <main className="app-layout-main">
-        <Outlet />
-      </main>
-      <BottomNav />
+      <HistoryBadgeProvider>
+        <Navbar />
+        <main className="app-layout-main">
+          <Outlet />
+        </main>
+        <BottomNav />
+      </HistoryBadgeProvider>
     </div>
   );
 }
