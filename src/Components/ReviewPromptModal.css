@@ -1,0 +1,86 @@
+.review-prompt {
+  text-align: center;
+}
+
+.review-prompt-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-primary);
+}
+
+.review-prompt-title {
+  font-size: 20px;
+  margin-bottom: 8px;
+  color: var(--color-text);
+}
+
+.review-prompt-copy {
+  font-size: 14.5px;
+  color: var(--color-subtext);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.review-prompt-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.review-prompt-stars button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  transition: transform 0.1s ease;
+}
+
+.review-prompt-stars button:hover {
+  transform: scale(1.1);
+}
+
+.review-prompt-textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1.5px solid var(--color-line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  margin-bottom: 18px;
+}
+
+.review-prompt-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.review-prompt-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.review-prompt-actions .btn {
+  flex: 1;
+  height: 52px;
+}
+
+@media (max-width: 480px) {
+  .review-prompt-actions {
+    flex-direction: column;
+  }
+
+  .review-prompt-actions .btn:not(:last-child) {
+    margin-bottom: 14px;
+  }
+}

@@ -13,7 +13,14 @@
   min-width: 0; /* critical for flex children: without this, a wide table
                    forces the whole column wider instead of scrolling
                    inside its own card */
-  padding: 32px 36px 60px;
+  padding: 32px 44px 60px;
+}
+
+@media (min-width: 1400px) {
+  /* On very wide monitors, stop the content from stretching edge-to-edge
+     (tables/cards start looking sparse past this) while still using far
+     more of the screen than the old fixed-width layout did. */
+  .admin-main { padding: 36px 64px 64px; }
 }
 
 @media (max-width: 900px) {
