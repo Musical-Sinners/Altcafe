@@ -45,28 +45,30 @@ function AdminRewards() {
             <span>Once users start inviting friends, the top referrers will show up here.</span>
           </div>
         ) : (
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Name</th>
-                <th>Referral Code</th>
-                <th>Referrals</th>
-                <th>Wallet Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topReferrers.map((u, i) => (
-                <tr key={u.id}>
-                  <td>#{i + 1}</td>
-                  <td>{u.name || u.phone || u.email || "—"}</td>
-                  <td>{u.referral_code || "—"}</td>
-                  <td>{u.referral_count}</td>
-                  <td>₹{u.wallet_balance || 0}</td>
+          <div className="admin-table-scroll">
+            <table className="admin-users-table compact">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Name</th>
+                  <th>Referral Code</th>
+                  <th>Referrals</th>
+                  <th>Wallet Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topReferrers.map((u, i) => (
+                  <tr key={u.id}>
+                    <td>#{i + 1}</td>
+                    <td>{u.name || u.phone || u.email || "—"}</td>
+                    <td>{u.referral_code || "—"}</td>
+                    <td>{u.referral_count}</td>
+                    <td>₹{u.wallet_balance || 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>

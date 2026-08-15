@@ -267,10 +267,10 @@ function Profile() {
           </div>
 
           <div className="profile-referral-actions">
-            <Button size="sm" variant="ghost" icon={Copy} onClick={handleCopyReferralCode}>
+            <Button size="md" variant="ghost" icon={Copy} onClick={handleCopyReferralCode}>
               Copy Code
             </Button>
-            <Button size="sm" variant="secondary" icon={Share2} onClick={handleCopyReferralLink}>
+            <Button size="md" variant="secondary" icon={Share2} onClick={handleCopyReferralLink}>
               Copy Link
             </Button>
           </div>
@@ -349,7 +349,10 @@ function Profile() {
       </Modal>
 
       <Modal open={logoutOpen} onClose={() => setLogoutOpen(false)}>
-        <h2 style={{ marginBottom: 8 }}>Log Out?</h2>
+        <div className="profile-modal-icon profile-modal-icon-neutral">
+          <LogOut size={22} strokeWidth={2} />
+        </div>
+        <h2 className="profile-modal-title">Log Out?</h2>
         <p className="profile-logout-copy">
           You'll need to sign in again next time.
         </p>
@@ -364,10 +367,10 @@ function Profile() {
       </Modal>
 
       <Modal open={deleteOpen} onClose={() => !deleting && setDeleteOpen(false)} dismissible={!deleting}>
-        <div className="profile-delete-warning-icon">
+        <div className="profile-modal-icon profile-modal-icon-danger">
           <AlertTriangle size={22} strokeWidth={2} />
         </div>
-        <h2 style={{ marginBottom: 8 }}>Delete Your Account?</h2>
+        <h2 className="profile-modal-title">Delete Your Account?</h2>
         <p className="profile-logout-copy">
           This will permanently remove your profile, wallet balance, and
           referral history. This cannot be undone.

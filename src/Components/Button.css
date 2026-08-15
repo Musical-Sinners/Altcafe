@@ -11,8 +11,8 @@
   transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out), background 0.15s ease, opacity 0.15s ease;
 }
 
-.btn-md { height: 52px; padding: 0 24px; font-size: 16px; }
-.btn-sm { height: 40px; padding: 0 16px; font-size: 14px; border-radius: var(--radius-sm); }
+.btn-md { height: 60px; padding: 0 26px; font-size: 16px; border-radius: var(--radius-pill); }
+.btn-sm { height: 48px; padding: 0 20px; font-size: 14.5px; border-radius: var(--radius-pill); }
 
 .btn-primary {
   background: linear-gradient(155deg, var(--color-secondary), var(--color-primary));
@@ -30,10 +30,10 @@
 .btn-secondary:hover:not(:disabled) { transform: translateY(-2px); }
 
 .btn-ghost {
-  background: #eaf3ee;
+  background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
 }
-.btn-ghost:hover:not(:disabled) { background: #dcece3; }
+.btn-ghost:hover:not(:disabled) { background: rgba(34, 197, 94, 0.2); }
 
 .btn-danger {
   background: var(--color-danger);

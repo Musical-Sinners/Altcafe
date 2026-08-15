@@ -62,7 +62,7 @@ function AdminLayout() {
 
   return (
     <div className="admin-shell">
-      <AdminSidebar />
+      <AdminSidebar onLogout={handleLogout} />
       <main className="admin-main">
         <div className="admin-title-row">
           <button type="button" className="admin-logout-btn" onClick={handleLogout}>

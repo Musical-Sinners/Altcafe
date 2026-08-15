@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings, Coffee, MessageSquareText, Info } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Wallet, Gift, Settings, Coffee, MessageSquareText, Info, LogOut } from "lucide-react";
 import "./AdminSidebar.css";
 
 const links = [
@@ -14,11 +14,18 @@ const links = [
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-function AdminSidebar() {
+function AdminSidebar({ onLogout }) {
   return (
     <aside className="admin-sidebar">
-      <div className="admin-sidebar-logo">
-        <span>⚽</span> Turf&nbsp;Admin
+      <div className="admin-sidebar-topbar">
+        <div className="admin-sidebar-logo">
+          <span>⚽</span> Turf&nbsp;Admin
+        </div>
+        {/* Only visible on mobile — desktop shows Log Out inside the page header instead. */}
+        <button type="button" className="admin-sidebar-mobile-logout" onClick={onLogout}>
+          <LogOut size={15} strokeWidth={2.2} />
+          Log Out
+        </button>
       </div>
       <nav className="admin-sidebar-nav">
         {links.map(({ to, label, icon: Icon, end }) => (
@@ -29,7 +36,7 @@ function AdminSidebar() {
             className={({ isActive }) => "admin-sidebar-link" + (isActive ? " active" : "")}
           >
             <Icon size={18} strokeWidth={2.1} />
-            {label}
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>

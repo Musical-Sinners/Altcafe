@@ -62,7 +62,7 @@
   flex-shrink: 0;
   border: none;
   border-radius: 50%;
-  background: #eaf3ee;
+  background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -71,7 +71,7 @@
   transition: background 0.15s var(--ease-out);
 }
 
-.profile-edit-btn:hover { background: #dcece3; }
+.profile-edit-btn:hover { background: rgba(34, 197, 94, 0.2); }
 
 /* Stats strip */
 .profile-stats-card {
@@ -186,7 +186,8 @@
 
 .profile-referral-actions {
   display: flex;
-  gap: 10px;
+  gap: 14px;
+  margin-top: 4px;
 }
 
 .profile-referral-actions .btn { flex: 1; }
@@ -204,7 +205,7 @@
   height: 36px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: #eaf3ee;
+  background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -256,7 +257,7 @@
   height: 34px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: #eaf3ee;
+  background: rgba(34, 197, 94, 0.12);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -294,16 +295,29 @@
 
 .profile-delete-account-btn:hover { opacity: 0.8; }
 
-.profile-delete-warning-icon {
-  width: 44px;
-  height: 44px;
+.profile-modal-icon {
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: rgba(217, 45, 32, 0.1);
-  color: var(--color-danger, #d92d20);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+}
+
+.profile-modal-icon-danger {
+  background: rgba(217, 45, 32, 0.1);
+  color: var(--color-danger, #d92d20);
+}
+
+.profile-modal-icon-neutral {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--color-primary);
+}
+
+.profile-modal-title {
+  font-size: 20px;
+  margin-bottom: 10px;
 }
 
 /* Edit profile form (inside Modal) */
@@ -343,15 +357,15 @@
 
 /* Logout confirm modal */
 .profile-logout-copy {
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--color-subtext);
-  line-height: 1.5;
-  margin-bottom: 22px;
+  line-height: 1.6;
+  margin-bottom: 24px;
 }
 
 .profile-logout-actions {
   display: flex;
-  gap: 10px;
+  gap: 14px;
 }
 
 .profile-logout-actions .btn { flex: 1; }
@@ -361,6 +375,11 @@
   .profile-referral-actions,
   .profile-logout-actions {
     flex-direction: column;
+  }
+
+  .profile-referral-actions .btn:not(:last-child),
+  .profile-logout-actions .btn:not(:last-child) {
+    margin-bottom: 14px;
   }
 
   .profile-referral-top,

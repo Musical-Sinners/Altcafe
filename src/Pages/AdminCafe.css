@@ -29,6 +29,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-bottom: 14px;
 }
 
@@ -36,6 +38,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 14px;
+}
+
+@media (max-width: 480px) {
+  .admin-cafe-grid { grid-template-columns: 1fr; }
+  .admin-cafe-item { padding: 12px; }
 }
 
 .admin-cafe-item {

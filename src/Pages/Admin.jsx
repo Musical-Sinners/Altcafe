@@ -45,26 +45,28 @@ function Admin() {
             {recentUsers.length === 0 ? (
               <p style={{ color: "var(--color-subtext)", fontSize: 14 }}>No users have signed up yet.</p>
             ) : (
-              <table className="admin-users-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Contact</th>
-                    <th>Joined</th>
-                    <th>Referrals</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUsers.map((u) => (
-                    <tr key={u.id}>
-                      <td>{u.name || "—"}</td>
-                      <td>{u.phone || u.email || "—"}</td>
-                      <td>{formatDate(u.created_at)}</td>
-                      <td>{u.referral_count || 0}</td>
+              <div className="admin-table-scroll">
+                <table className="admin-users-table compact">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Contact</th>
+                      <th>Joined</th>
+                      <th>Referrals</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentUsers.map((u) => (
+                      <tr key={u.id}>
+                        <td>{u.name || "—"}</td>
+                        <td className="admin-cell-wrap">{u.phone || u.email || "—"}</td>
+                        <td>{formatDate(u.created_at)}</td>
+                        <td>{u.referral_count || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </>

@@ -10,7 +10,14 @@
 
 .admin-main {
   flex: 1;
+  min-width: 0; /* critical for flex children: without this, a wide table
+                   forces the whole column wider instead of scrolling
+                   inside its own card */
   padding: 32px 36px 60px;
+}
+
+@media (max-width: 900px) {
+  .admin-main { padding: 20px 16px calc(90px + env(safe-area-inset-bottom, 0px)); }
 }
 
 .admin-title { margin-bottom: 24px; }
@@ -34,6 +41,11 @@
   padding: 9px 14px;
   border-radius: 10px;
   cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  /* Log Out now lives in the sidebar's mobile top bar instead. */
+  .admin-title-row { display: none; }
 }
 
 .admin-stat-grid {
@@ -64,6 +76,10 @@
 
 .admin-users-card h2 { margin-bottom: 16px; font-size: 17px; }
 
+@media (max-width: 480px) {
+  .admin-users-card { padding: 16px; }
+}
+
 .admin-table-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -74,6 +90,14 @@
   min-width: 920px;
   border-collapse: collapse;
   font-size: 13.5px;
+}
+
+/* Used for small, few-column tables (like the Dashboard's Recent Users
+   widget) that don't need the wide min-width the big admin tables do —
+   without this override those tables blew out past their card on every
+   screen size, not just mobile. */
+.admin-users-table.compact {
+  min-width: 0;
 }
 
 .admin-users-table th {

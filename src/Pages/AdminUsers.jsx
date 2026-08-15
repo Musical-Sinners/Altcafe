@@ -76,44 +76,46 @@ function AdminUsers() {
             {users.length === 0 ? "No users have signed up yet." : "No users match your search."}
           </p>
         ) : (
-          <table className="admin-users-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Referral Code</th>
-                <th>Referred By</th>
-                <th>Referrals</th>
-                <th>Wallet</th>
-                <th>Joined</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.name || "—"}</td>
-                  <td>{u.phone || u.email || "—"}</td>
-                  <td>{u.referral_code || "—"}</td>
-                  <td>{u.referred_by ? "Yes" : "—"}</td>
-                  <td>{u.referral_count || 0}</td>
-                  <td>₹{u.wallet_balance || 0}</td>
-                  <td>{formatDate(u.created_at)}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      icon={deletingId === u.id ? UserX : Trash2}
-                      onClick={() => handleDeleteUser(u)}
-                      disabled={deletingId === u.id}
-                    >
-                      {deletingId === u.id ? "Removing" : "Remove"}
-                    </Button>
-                  </td>
+          <div className="admin-table-scroll">
+            <table className="admin-users-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Contact</th>
+                  <th>Referral Code</th>
+                  <th>Referred By</th>
+                  <th>Referrals</th>
+                  <th>Wallet</th>
+                  <th>Joined</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u) => (
+                  <tr key={u.id}>
+                    <td>{u.name || "—"}</td>
+                    <td>{u.phone || u.email || "—"}</td>
+                    <td>{u.referral_code || "—"}</td>
+                    <td>{u.referred_by ? "Yes" : "—"}</td>
+                    <td>{u.referral_count || 0}</td>
+                    <td>₹{u.wallet_balance || 0}</td>
+                    <td>{formatDate(u.created_at)}</td>
+                    <td>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        icon={deletingId === u.id ? UserX : Trash2}
+                        onClick={() => handleDeleteUser(u)}
+                        disabled={deletingId === u.id}
+                      >
+                        {deletingId === u.id ? "Removing" : "Remove"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>
