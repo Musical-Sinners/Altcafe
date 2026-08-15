@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./contexts/ToastContext";
 import AppLayout from "./layouts/AppLayout";
 import AdminLayout from "./layouts/AdminLayout";
+import AudioUnlocker from "./Components/AudioUnlocker";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import Booking from "./Pages/Booking";
@@ -25,6 +26,7 @@ import "./styles/theme.css";
 function App() {
   return (
     <ToastProvider>
+      <AudioUnlocker />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
