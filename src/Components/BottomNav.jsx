@@ -1,11 +1,13 @@
 import { NavLink } from "react-router-dom";
-import { Home, Volleyball, Wallet, User } from "lucide-react";
+import { Home, Volleyball, Coffee, Wallet, Star, User } from "lucide-react";
 import "./BottomNav.css";
 
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/booking", label: "Booking", icon: Volleyball },
+  { to: "/cafe", label: "Cafe", icon: Coffee },
   { to: "/wallet", label: "Wallet", icon: Wallet },
+  { to: "/reviews", label: "Reviews", icon: Star },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
